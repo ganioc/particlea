@@ -12,6 +12,11 @@ function bPointWithinRect(x0,y0,x,y,w,h){
     }
 }
 
+function strPrintTime(){
+    var d= new Date();
+    return d.getMinutes()+ ':' + d.getSeconds() + ':' + d.getMilliseconds();
+}
+
 function base2DLoop(){
     var ctx;
 
@@ -58,18 +63,25 @@ function splashLoop(opt){
 
     console.log('In splashLoop configuration');
 
-    var img1 = w.getImage('btn_back_white');
+    //var img1 = w.getImage('btn_back_white');
     var img2 = w.getImage('splash_screen');
+    var imgParam = w.getCutImage(img2);
+
     return{
         loop:function(td){
 
             //console.log(td);
             
-            //ctx.fillStyle = 'yellow';
-            //ctx.fillRect(0,0,ctx.canvas.width, ctx.canvas.height);
+            ctx.fillStyle = 'yellow';
+            ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height);
 
-            ctx.drawImage(img2,0,0,img2.width,img2.height,0,0,ctx.canvas.width,ctx.canvas.height);
-            ctx.drawImage(img1, 0, 0);
+            ctx.drawImage(img2,
+                          imgParam.x,
+                          imgParam.y,
+                          imgParam.width,
+                          imgParam.height,
+                          0,0,ctx.canvas.width,ctx.canvas.height);
+
             
             ctx.fillStyle = 'white';
             ctx.font = '40px serif';
@@ -83,7 +95,8 @@ function splashLoop(opt){
         // },
         houseKeeping: function(){
             console.log('housekeeping of splashloop');
-            
+            ctx.fillStyle = 'black';
+            ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height);            
         }
     };
 }
@@ -98,6 +111,8 @@ function plane2DLoop(opt){
     var ctx;
     var name = "plane2DLoop";
     var SPACING = 5;
+    var imgBeautiful = w.getImage('beautiful');
+    
     
     ctx = opt.context || null;
 
@@ -109,10 +124,10 @@ function plane2DLoop(opt){
     var widgetBack = new Widget(
         {
             name:'back',
-            x:SPACING,
+            x:ctx.canvas.width - 20 - SPACING,
             y:SPACING,
-            width:14,
-            height:14,
+            width:20,
+            height:20,
             img : w.getImage('btn_back_black'),
             imgPressed: w.getImage('btn_back_white'),
             parent:w
@@ -122,6 +137,7 @@ function plane2DLoop(opt){
 
     widgetBack.mousedownCallback = function(event){
         console.log("widgetBack clicked");
+        event.preventDefault();
         //console.log(this.x + ' ' + this.y + ' ' + this.width + ' ' + this.height);
         if(widgetBack.getPressed()) { return; }
         if(bPointWithinRect(event.pageX, event.pageY,widgetBack.x,widgetBack.y,widgetBack.width,widgetBack.height)){
@@ -129,27 +145,51 @@ function plane2DLoop(opt){
             window.setTimeout(w.toWebview, 300);
         }
 
+
     };
+    widgetBack.touchstartCallback = function(event){
+        console.log("widgetBack touched");
+        //console.log(this.x + ' ' + this.y + ' ' + this.width + ' ' + this.height);
+        if(widgetBack.getPressed()) { return; }
+        if(bPointWithinRect(event.touches[0].pageX, event.touches[0].pageY,widgetBack.x,widgetBack.y,widgetBack.width,widgetBack.height)){
+            widgetBack.setPressed();
+            window.setTimeout(w.toWebview, 300);
+        }
+    };    
     
     widgetBack.draw = function(context){
         if(!widgetBack.getPressed()){
-            context.drawImage(widgetBack.img, widgetBack.x , widgetBack.y);
+            context.drawImage(widgetBack.img, 0,0,widgetBack.img.width,widgetBack.img.height,widgetBack.x , widgetBack.y, widgetBack.width, widgetBack.height);
         }else{
-            context.drawImage(widgetBack.imgPressed, widgetBack.x , widgetBack.y);
+            context.drawImage(widgetBack.imgPressed, 0,0, widgetBack.imgPressed.width, widgetBack.imgPressed.height,widgetBack.x , widgetBack.y,widgetBack.width, widgetBack.height);
         }
     };
 
     widgetList.push(widgetBack);
 
     w.getInterface().register( 'mousedown',widgetBack, widgetBack.mousedownCallback );
+    w.getInterface().register( 'touchstart',widgetBack, widgetBack.touchstartCallback );
+
+    var imgBeautifulParam = w.getCutImage(imgBeautiful);
     
     return{
         loop:function(td){
 
             //console.log(td);
             
-            ctx.fillStyle = 'blue';
-            ctx.fillRect(0,0,ctx.canvas.width, ctx.canvas.height);
+            //ctx.fillStyle = 'blue';
+            //ctx.fillRect(0,0,ctx.canvas.width, ctx.canvas.height);
+
+            ctx.drawImage(imgBeautiful,
+                          imgBeautifulParam.x,
+                          imgBeautifulParam.y,
+                          imgBeautifulParam.width,
+                          imgBeautifulParam.height,
+                          0,
+                          0,
+                          ctx.canvas.width,
+                          ctx.canvas.height
+                         );
 
             _.each(widgetList,function(c){
                 c.draw(ctx);
@@ -159,7 +199,34 @@ function plane2DLoop(opt){
         houseKeeping: function(){
             console.log('housekeeping of:'+ name);
             w.getInterface().clear();
-            
+
+        }
+    };
+} // end of plane2DLoop
+
+function threeDLoop(opt){
+    var name = 'threeDLoop';
+    var ctx = opt.context;
+    var ctxGL = opt.contextGL;
+
+    console.log('into threeDLoop');
+
+    //ctx.canvas.style.background = 'rgba(0,0,0,1)';
+    //ctx.canvas.style.display = "none";
+    //ctx.canvas.style.background = 'rgba(255,255,0,0.2';
+    ctx.fillColor='rgba(255,255,0,0.5)';
+    ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height);
+    ctx.fillRect(0,0,ctx.canvas.width, ctx.canvas.height);
+    
+    return{
+        loop:function(td){
+            //ctxGL.clearColor();
+
+        },
+        housekeeping:function(){
+            console.log('housekeeping of:'+ name);
+            w.getInterface().clear();
+
         }
     };
 }
@@ -173,8 +240,9 @@ function plane2DLoop(opt){
 
 window.w = (function(){
     //global variable definition
-    var canvas, ctx, _const1 = 1.02;
-
+    var canvas, ctx;
+    var canvasGL, ctxGL;
+    
     var currentGameLoop = null,
         bGameRunning = false;
 
@@ -209,7 +277,7 @@ window.w = (function(){
     // to generate a game loop
     function createGameLoop(handler, callback){
         var start;
-        var MIN_TD = 0.010;
+        var MIN_TD = 0.006;
         
         return function(timestamp){
             if(!start){
@@ -237,7 +305,13 @@ window.w = (function(){
     function _initWebview(){
         Cocoon.App.WebView.on("load",{
             success : function(){
-                Cocoon.App.showTheWebView();
+                //Cocoon.App.showTheWebView();
+                console.log('initwebview success' + strPrintTime());
+                window.setTimeout(function(){
+                    Cocoon.App.showTheWebView();
+                    console.log('begin to show the webview' + strPrintTime());
+                },3000
+                );
             },
             error : function(){
                 console.log("Cannot show the Webview for some reason :/");
@@ -245,6 +319,7 @@ window.w = (function(){
             }
         });
         Cocoon.App.loadInTheWebView("WV.html");
+        console.log('start to load webview' + strPrintTime());
     }
 
     function _initCanvas(){
@@ -256,11 +331,30 @@ window.w = (function(){
 
         // init context
         ctx = canvas.getContext("2d");
-        // ctx.fillColor = 'red';
-        // ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height);
-        // ctx.fillRect(0,0, 200,100);
-    }
 
+        canvasGL = document.createElement(navigator.isCocoonJS ? 'screencanvas' : 'canvas');
+        canvasGL.width = window.innerWidth;
+        canvasGL.height = window.innerHeight;
+        canvasGL.id = "canvas_3d";
+        document.body.appendChild(canvasGL);
+
+        try{
+            ctxGL = canvasGL.getContext('experimental-webgl');
+            ctxGL.viewportWidth = canvasGL.width;
+            ctxGL.viewPortHeight = canvasGL.height;
+        }
+        catch(e){
+            console.log('webgl init failure');
+        }
+        if(!ctxGL){
+            console.log('no gl.');
+        }
+        else{
+            console.log('gl exist');
+            ctxGL.clearColor(0,0,0,1);
+            ctxGL.clear(ctxGL.COLOR_BUFFER_BIT);
+        }
+    }
     //_initCanvas();
 
     function _setGameLoop( handler,opt){
@@ -382,25 +476,32 @@ window.w = (function(){
             }
         };
     }; // end of _initInterface
-    
+
+    function addHook(obj, inter,message){
+        obj.addEventListener(message,inter.hook(message),false);
+    }
+
+    // return function window.w
     return {
         init: function(callback){
-  
-            _initWebview();
-            
             // handle message dispatch, such as mouse and touch event
+            console.log('into init' + strPrintTime());
+            runSplash();
+            
             interface = _initInterface();
 
-            canvas.addEventListener(
-                'mousedown',
-                interface.hook('mousedown'),
-                false
-            );
+            addHook(canvas, interface, 'mousedown');
+            addHook( canvas, interface, 'touchstart');
 
-            runSplash();
+            console.log('begin init webview' + strPrintTime());
+            
+            _initWebview();
+            
         },
         pre_init:function(opt){
+            console.log('init canvas' + strPrintTime());
             _initCanvas();
+            console.log('init images' + strPrintTime());
             init_images(opt.img_path, imgList, w.init);
         },
         initWebview:_initWebview,
@@ -418,6 +519,9 @@ window.w = (function(){
         getContext:function(){
             return ctx;
         },
+        getContextGL:function(){
+            return ctxGL;
+        },        
         getCanvas:function(){
             return canvas;
         },
@@ -426,12 +530,38 @@ window.w = (function(){
         },
         getInterface:function(){
             return interface;
+        },
+        getAspectRatio: function(){
+            return ctx.canvas.width/ctx.canvas.height;
+        },
+        getCutImage: function(img){
+            var imgAspect = img.width/img.height;
+            var canvasAspect = ctx.canvas.width / ctx.canvas.height;
+            var x0,y0,width0,height0;
+
+            if(imgAspect< canvasAspect){
+                width0 = img.width;
+                x0 = 0;
+                height0 = img.width/canvasAspect;
+                y0 = (img.height - height0)/2;
+            }
+            else{
+                height0 = img.height;
+                y0 = 0;
+                width0 = height0 * canvasAspect;
+                x0 = (img.width - width0)/2;
+            }
+            return {
+                x:x0,
+                y:y0,
+                width:width0,
+                height:height0
+            };
         }
     };
     
 })();
 
-var w = window.w;
 
 function run2D(){
     w.setGameLoop(plane2DLoop, {context:w.getContext()});
@@ -441,6 +571,17 @@ function run2D(){
 function runSplash(){
     w.setGameLoop(splashLoop, {context:w.getContext()});
     w.startGameLoop();
+}
+
+function run3DCube(){
+    console.log('run3DCube');
+    w.setGameLoop(threeDLoop, {
+        context:w.getContext(),
+        contextGL:w.getContextGL()}
+                 );
+    w.startGameLoop();
+
+    
 }
 
 //w.initWebview();
@@ -456,7 +597,11 @@ w.pre_init({
         {
             path:'img/splash.png',
             name:'splash_screen'
-        }
+        },
+        {
+            path:'img/beautiful.png',
+            name:'beautiful'
+        }        
     ]
 });
 
