@@ -27,7 +27,7 @@ Cocoon.App.forward('console.log("run wv.js" + strPrintTime());');
         Cocoon.App.forward('run3DCube();');
         Cocoon.WebView.hide();
         Cocoon.Touch.enable();
-        console.log('back to canvas');
+        //console.log('back to canvas');
     }
 
     function _on2d(){
@@ -57,7 +57,7 @@ $(document).ready(function(){
             Cocoon.App.forward("console.log('stop game loop()' + strPrintTime());");
             Cocoon.App.forward("w.stopGameLoop();");
         },
-        4000);
+        3500);
     
     //window.setTimeout(Cocoon.App.forward("w.stopGameLoop();",);
 

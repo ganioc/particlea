@@ -17,18 +17,6 @@ function strPrintTime(){
     return d.getMinutes()+ ':' + d.getSeconds() + ':' + d.getMilliseconds();
 }
 
-function base2DLoop(){
-    var ctx;
-
-
-}
-
-function base3DLoop(){
-    var ctxGL;
-    
-
-}
-
 function Widget(opt){
     this.pressed = false;
     this.name = opt.name;
@@ -49,200 +37,174 @@ function Widget(opt){
     };
 }
 
-/**
- * 
- * @param {} function
- * @returns {} 
- */
-
-
 function splashLoop(opt){
-    var ctx;
-    
-    //w.initCanvas();
-    
-    ctx = opt.context || null;
-
-    console.log('In splashLoop configuration');
-
-    //var img1 = w.getImage('btn_back_white');
-    var img2 = w.getImage('splash_screen');
-    var imgParam = w.getCutImage(img2);
-
-    //w.hideCanvasGL();
+    var ctxGL = opt.contextGL;
+    var name = "splashscreen";
+    console.log("into splashLoop");
+    var counter = 0;
+    function draw(gl, td){
+        gl.clearColor(0,1,0,1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+    }
     
     return{
         loop:function(td){
-
-            //console.log(td);
+            draw(ctxGL,td);
             
-            ctx.fillStyle = 'yellow';
-            ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height);
-
-            ctx.drawImage(img2,
-                          imgParam.x,
-                          imgParam.y,
-                          imgParam.width,
-                          imgParam.height,
-                          0,0,ctx.canvas.width,ctx.canvas.height);
-
-            
-            ctx.fillStyle = 'white';
-            ctx.font = '40px serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('Boxshell', ctx.canvas.width/2, ctx.canvas.height/2);
-            ctx.font= '20px serif';
-            ctx.fillText('2015',ctx.canvas.width/2,ctx.canvas.height/2 + 40);
         },
-        // setContext:function(context){
-        //     ctx = context;
-        // },
-        houseKeeping: function(){
-            console.log('housekeeping of splashloop');
-            //ctx.fillStyle = 'black';
-            //ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height);
-            w.clearCanvas();
-            
-        }
-    };
-}
+        houseKeeping:function(){
+            console.log('housekeeping of:'+ name);
+            w.getInterface().clear();
 
-
-/**
- * 
- * @param {} function
- * @returns {} 
- */
-function plane2DLoop(opt){
-    var ctx;
-    var name = "plane2DLoop";
-    var SPACING = 5;
-    var imgBeautiful = w.getImage('beautiful');
-    var img = w.getImage('btn_back_white'),
-        imgPressed= w.getImage('btn_back_black');
-    //w.showCanvas();
-    //w.initCanvas();
-    var imgBeautifulParam = w.getCutImage(imgBeautiful);
-    
-    ctx = opt.context || null;
-    var gl = opt.contextGL || null;
-
-        
-    console.log('In plane2DLoop configuration');
-
-    var widgetList = [];
-
-    var widgetBack = new Widget(
-        {
-            name:'back',
-            x:ctx.canvas.width - 20 - SPACING,
-            y:SPACING,
-            width:20,
-            height:20,
-            img : w.getImage('btn_back_white'),
-            imgPressed: w.getImage('btn_back_black'),
-            parent:w
-        }
-    );
-
-
-    widgetBack.mousedownCallback = function(event){
-        console.log("widgetBack page clicked");
-        event.preventDefault();
-        //console.log(this.x + ' ' + this.y + ' ' + this.width + ' ' + this.height);
-        if(widgetBack.getPressed()) { return; }
-        if(bPointWithinRect(event.pageX, event.pageY,widgetBack.x,widgetBack.y,widgetBack.width,widgetBack.height)){
-            widgetBack.setPressed();
-            window.setTimeout(w.toWebview, 300);
-        }
-    };
-    widgetBack.touchstartCallback = function(event){
-        console.log("widgetBack touched");
-        //console.log(this.x + ' ' + this.y + ' ' + this.width + ' ' + this.height);
-        if(widgetBack.getPressed()) { return; }
-        if(bPointWithinRect(event.touches[0].pageX, event.touches[0].pageY,widgetBack.x,widgetBack.y,widgetBack.width,widgetBack.height)){
-            widgetBack.setPressed();
-            window.setTimeout(w.toWebview, 300);
         }
     };    
     
-    widgetBack.draw = function(context){
-        if(!widgetBack.getPressed()){
-            context.drawImage(widgetBack.img, 0,0,widgetBack.img.width,widgetBack.img.height,widgetBack.x , widgetBack.y, widgetBack.width, widgetBack.height);
-        }else{
-            context.drawImage(widgetBack.imgPressed, 0,0, widgetBack.imgPressed.width, widgetBack.imgPressed.height,widgetBack.x , widgetBack.y,widgetBack.width, widgetBack.height);
-        }
-    };
-
-    widgetList.push(widgetBack);
-
-    w.getInterface().register( 'mousedown',widgetBack, widgetBack.mousedownCallback );
-    w.getInterface().register( 'touchstart',widgetBack, widgetBack.touchstartCallback );
-
-    
-    
-    return{
-        loop:function(td){
-            ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height);
-            ctx.fillStyle='red';
-            ctx.fillRect(0,200, ctx.canvas.width, ctx.canvas.height);
-            
-            // ctx.drawImage(imgBeautiful,
-            //               0,
-            //               0
-            //              );
-            // ctx.drawImage(imgBeautiful,
-            //               0,
-            //               100
-            //              );
-
-            // ctx.drawImage(imgBeautiful,
-            //               imgBeautifulParam.x,
-            //               imgBeautifulParam.y,
-            //               imgBeautifulParam.width,
-            //               imgBeautifulParam.height,
-            //               0,
-            //               0,
-            //               ctx.canvas.width,
-            //               ctx.canvas.height
-            //              );
-            
-            ctx.drawImage(img, 0,0, 14, 14, 200 , 300 ,14, 14);
-            ctx.drawImage(img, 0, 0, 14, 14, 200, 280, 14, 14);
-
-            _.each(widgetList,function(c){
-                c.draw(ctx);
-            });
-
-        },
-        houseKeeping: function(){
-            console.log('housekeeping of:'+ name);
-            w.getInterface().clear();
-            w.clearCanvas();
-        }
-    };
-} // end of plane2DLoop
-
+}
 function threeDLoop(opt){
     var name = 'threeDLoop';
-    var ctx = opt.context;
     var ctxGL = opt.contextGL;
+    var projectionMatrix, modelViewMatrix;
+    var shaderProgram, shaderVertexPositionAttribute,
+        shaderProjectionMatrixUniform,
+        shaderModelViewMatrixUniform;
 
+    var vertices;
+    var counter = 0;
+    
     console.log('into threeDLoop');
 
-    //ctx.canvas.style.background = 'rgba(0,0,0,1)';
-    //ctx.canvas.style.display = "none";
-    //ctx.canvas.style.background = 'rgba(255,255,0,0.2';
-    ctx.fillColor='rgba(255,255,0,0.5)';
-    ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height);
-    ctx.fillRect(0,0,ctx.canvas.width, ctx.canvas.height);
+    function createSquare(gl,td,c){
+        var vertexBuffer;
+
+        vertexBuffer = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);// binding buffer
+        var verts = [
+            Math.cos(Math.PI * c)*0.5, 0.5*Math.sin(Math.PI*c), 0.0,
+                -0.5*Math.sin(Math.PI*c/4),0.5,0.0,
+            0.5*Math.sin(Math.PI* c*2),-0.5,0.0,
+                -0.5* Math.cos(Math.PI* c/6),-0.5,0.0
+        ];
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+        // send data to buffer
+        var square = {
+            buffer: vertexBuffer,
+            vertSize:3,
+            nVerts:4,
+            primtype:gl.TRIANGLE_STRIP
+        };
+        return square;
+    }
+
+    function initMatrices(canvas){
+        modelViewMatrix = mat4.create();
+        mat4.translate( modelViewMatrix, modelViewMatrix, [0,0,-3.333]);
+
+        projectionMatrix = mat4.create();
+        mat4.perspective(projectionMatrix, Math.PI/4,
+                         canvas.width/canvas.height, 1, 10000);
+    }
+
+    function createShader(gl, str, type){
+        var shader;
+        if(type === 'fragment'){
+            shader = gl.createShader(gl.FRAGMENT_SHADER);
+        }else if( type === 'vertex'){
+            shader = gl.createShader(gl.VERTEX_SHADER);
+        }
+        else{
+            return null;
+        }
+
+        gl.shaderSource(shader,str);
+        gl.compileShader(shader);
+
+        if( !gl.getShaderParameter(shader, gl.COMPILE_STATUS)){
+            console.log(gl.getShaderInfoLog(shader
+                                           ));
+            return null;
+        }
+        
+        return shader;
+    }
+
+    var vertexShaderSRC =
+            "attribute vec3 vertexPos;\n" +
+            "uniform mat4 modelViewMatrix; \n" +
+            "uniform mat4 projectionMatrix; \n" +
+            "void main(void){\n" +
+            "  gl_Position= projectionMatrix * modelViewMatrix * vec4(vertexPos,1.0);\n" +
+            "}\n";
+    
+    var fragmentShaderSRC =
+            "void main(void){\n" +
+            "    gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);\n" +
+            "}\n";
+
+    function initShader(gl){
+        var fragmentShader = createShader(gl,fragmentShaderSRC, "fragment");
+        var vertexShader = createShader(gl, vertexShaderSRC, "vertex");
+
+        shaderProgram = gl.createProgram();
+        gl.attachShader(shaderProgram, vertexShader);
+        gl.attachShader(shaderProgram, fragmentShader);
+        gl.linkProgram(shaderProgram);
+
+        shaderVertexPositionAttribute=
+            gl.getAttribLocation(shaderProgram,"vertexPos");
+        gl.enableVertexAttribArray(shaderVertexPositionAttribute);
+
+        shaderProjectionMatrixUniform =
+            gl.getUniformLocation(shaderProgram, "projectionMatrix");
+        shaderModelViewMatrixUniform =
+            gl.getUniformLocation(shaderProgram, "modelViewMatrix");
+
+        if( !gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)){
+            console.log("Could not init shaders");
+        }
+
+    }
+    
+    function draw(gl, obj, c){
+
+        gl.clearColor( Math.abs(Math.cos(Math.PI * c)), 0.0, 0.0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        //console.log(td);
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, obj.buffer);
+
+        gl.useProgram(shaderProgram);
+
+        gl.vertexAttribPointer( shaderVertexPositionAttribute,
+                                obj.vertSize,
+                                gl.FLOAT,
+                                false,
+                                0,
+                                0
+                              );
+        gl.uniformMatrix4fv(shaderProjectionMatrixUniform,
+                            false,
+                            projectionMatrix);
+        gl.uniformMatrix4fv(shaderModelViewMatrixUniform,
+                            false,
+                            modelViewMatrix);
+        
+        gl.drawArrays(obj.primtype, 0, obj.nVerts);
+
+    }
+
+    ctxGL.viewport(0, 0, w.getCanvas().width* window.devicePixelRatio, w.getCanvas().height*window.devicePixelRatio);
+    initMatrices(w.getCanvas());//init modelViewMatrix, projectionMatrix
+
+    initShader(ctxGL);// init vertex fragment shader
     
     return{
         loop:function(td){
-            //ctxGL.clearColor();
+            counter += td;
+            vertices = createSquare(ctxGL,td, counter);// create vertice array
+            draw(ctxGL, vertices ,counter);
 
         },
-        housekeeping:function(){
+        houseKeeping:function(){
             console.log('housekeeping of:'+ name);
             w.getInterface().clear();
 
@@ -259,7 +221,7 @@ function threeDLoop(opt){
 
 window.w = (function(){
     //global variable definition
-    var canvas, ctx;
+    //var canvas, ctx;
     var canvasGL, ctxGL;
     
     var currentGameLoop = null,
@@ -342,33 +304,31 @@ window.w = (function(){
     }
 
     function _initCanvas(){
-        canvas = document.createElement(navigator.isCocoonJS ? 'screencanvas' : 'canvas');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-        canvas.id = 'canvas_2d';
-        document.body.appendChild(canvas);
+        canvasGL = document.createElement(navigator.isCocoonJS ? 'screencanvas' : 'canvas');
+        canvasGL.width = window.innerWidth;
+        canvasGL.height = window.innerHeight;
+        canvasGL.id = 'canvas_3d';
+        document.body.appendChild(canvasGL);
         
         // init context
-        ctx = canvas.getContext('2d');
-        _addHook( canvas, interface, 'mousedown');
-        _addHook( canvas, interface, 'touchstart');
+        try{
+            ctxGL = canvasGL.getContext('experimental-webgl');
+            ctxGL.viewportWidth = canvasGL.width;
+            ctxGL.viewPortHeight = canvasGL.height;
+        }
+        catch(e){
+            console.log('webgl init failure');
+        }
+        if(!ctxGL){
+            console.log('no gl.');
+        }
+        else{
+            console.log('gl exist');
+            ctxGL.clearColor(0,0,0,1);
+            ctxGL.clear(ctxGL.COLOR_BUFFER_BIT);
+        }
+
         
-        // try{
-        //     ctxGL = canvasGL.getContext('experimental-webgl');
-        //     ctxGL.viewportWidth = canvasGL.width*window.devicePixelRatio;
-        //     ctxGL.viewPortHeight = canvasGL.height*window.devicePixelRatio;
-        // }
-        // catch(e){
-        //     console.log('webgl init failure');
-        // }
-        // if(!ctxGL){
-        //     console.log('no gl.');
-        // }
-        // else{
-        //     console.log('gl exist');
-        //     //ctxGL.clearColor(0,0,0,1);
-        //     //ctxGL.clear(ctxGL.COLOR_BUFFER_BIT);
-        // }
         
     }
     //_initCanvas();
@@ -512,9 +472,11 @@ window.w = (function(){
         init: function(callback){
             // handle message dispatch, such as mouse and touch event
             console.log('into init' + strPrintTime());
-
             runSplash();
 
+            _addHook(canvasGL, interface, 'mousedown');
+            _addHook(canvasGL, interface, 'touchstart');
+            
             console.log('begin init webview' + strPrintTime());
             
             _initWebview();
@@ -540,27 +502,24 @@ window.w = (function(){
             Cocoon.App.forwardAsync("Cocoon.WebView.show(0, 0, " + ctx.canvas.width * window.devicePixelRatio + "," + ctx.canvas.height * window.devicePixelRatio + ");");
             Cocoon.Touch.disable();
         },
-        getContext:function(){
-            return ctx;
-        },
         getContextGL:function(){
             return ctxGL;
         },        
-        getCanvas:function(){
-            return canvas;
-        },
         getImage:function(name){
             return _getImage(imgList,name);
+        },
+        getCanvas: function(){
+            return canvasGL;
         },
         getInterface:function(){
             return interface;
         },
         getAspectRatio: function(){
-            return ctx.canvas.width/ctx.canvas.height;
+            return ctxGL.canvas.width/ctxGL.canvas.height;
         },
         getCutImage: function(img){
             var imgAspect = img.width/img.height;
-            var canvasAspect = ctx.canvas.width / ctx.canvas.height;
+            var canvasAspect = ctxGL.canvas.width / ctxGL.canvas.height;
             var x0,y0,width0,height0;
 
             if(imgAspect< canvasAspect){
@@ -581,18 +540,6 @@ window.w = (function(){
                 width:width0,
                 height:height0
             };
-        },
-        showCanvas:function(){
-            canvas.style.display = 'block';
-        },
-        showCanvasGL:function (){
-            canvasGL.style.display = 'block';
-        },
-        hideCanvasGL:function(){
-            canvasGL.style.display = 'none';
-        },
-        hideCanvas: function(){
-            canvas.style.display = 'none';
         }
     };
     
@@ -600,17 +547,17 @@ window.w = (function(){
 
 
 function run2D(){
-    w.setGameLoop(plane2DLoop, {context:w.getContext(),
-                                contextGL: w.getContextGL()});
+    w.setGameLoop(plane2DLoop, {
+        contextGL: w.getContextGL()});
     w.startGameLoop();
 }
 
-function runSplash(){
-    //w.initCanvas();
-    w.setGameLoop(splashLoop, {context:w.getContext()
-                              });
-    w.startGameLoop();
-}
+// function runSplash(){
+//     //w.initCanvas();
+//     w.setGameLoop(splashLoop, {context:w.getContext()
+//                               });
+//     w.startGameLoop();
+// }
 
 function run3DCube(){
     console.log('run3DCube');
@@ -622,7 +569,15 @@ function run3DCube(){
 
     
 }
+function runSplash(){
+    console.log('runSplash');
+    w.setGameLoop(splashLoop, {
+        //context:w.getContext(),
+        contextGL:w.getContextGL()}
+                 );
+    w.startGameLoop();
 
+}
 //w.initWebview();
 
 w.pre_init({
