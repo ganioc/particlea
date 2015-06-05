@@ -30,7 +30,7 @@ function base3DLoop(){
 }
 
 function Widget(opt){
-    var pressed = false;
+    this.pressed = false;
     this.name = opt.name;
     this.x = opt.x || 0;
     this.y = opt.y || 0;
@@ -41,11 +41,11 @@ function Widget(opt){
     this.parent = opt.parent || null;
 
     Widget.prototype.getPressed= function(){
-        return pressed; };
+        return this.pressed; };
     Widget.prototype.setPressed = function(){
-        pressed = true; };
+        this.pressed = true; };
     Widget.prototype.resetPressed = function(){
-        pressed = false;
+        this.pressed = false;
     };
 }
 
@@ -58,7 +58,9 @@ function Widget(opt){
 
 function splashLoop(opt){
     var ctx;
-
+    
+    //w.initCanvas();
+    
     ctx = opt.context || null;
 
     console.log('In splashLoop configuration');
@@ -67,6 +69,8 @@ function splashLoop(opt){
     var img2 = w.getImage('splash_screen');
     var imgParam = w.getCutImage(img2);
 
+    //w.hideCanvasGL();
+    
     return{
         loop:function(td){
 
@@ -95,8 +99,10 @@ function splashLoop(opt){
         // },
         houseKeeping: function(){
             console.log('housekeeping of splashloop');
-            ctx.fillStyle = 'black';
-            ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height);            
+            //ctx.fillStyle = 'black';
+            //ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height);
+            w.clearCanvas();
+            
         }
     };
 }
@@ -112,12 +118,17 @@ function plane2DLoop(opt){
     var name = "plane2DLoop";
     var SPACING = 5;
     var imgBeautiful = w.getImage('beautiful');
-    
+    var img = w.getImage('btn_back_white'),
+        imgPressed= w.getImage('btn_back_black');
+    //w.showCanvas();
+    //w.initCanvas();
+    var imgBeautifulParam = w.getCutImage(imgBeautiful);
     
     ctx = opt.context || null;
+    var gl = opt.contextGL || null;
 
+        
     console.log('In plane2DLoop configuration');
-    
 
     var widgetList = [];
 
@@ -128,15 +139,15 @@ function plane2DLoop(opt){
             y:SPACING,
             width:20,
             height:20,
-            img : w.getImage('btn_back_black'),
-            imgPressed: w.getImage('btn_back_white'),
+            img : w.getImage('btn_back_white'),
+            imgPressed: w.getImage('btn_back_black'),
             parent:w
         }
     );
 
 
     widgetBack.mousedownCallback = function(event){
-        console.log("widgetBack clicked");
+        console.log("widgetBack page clicked");
         event.preventDefault();
         //console.log(this.x + ' ' + this.y + ' ' + this.width + ' ' + this.height);
         if(widgetBack.getPressed()) { return; }
@@ -144,8 +155,6 @@ function plane2DLoop(opt){
             widgetBack.setPressed();
             window.setTimeout(w.toWebview, 300);
         }
-
-
     };
     widgetBack.touchstartCallback = function(event){
         console.log("widgetBack touched");
@@ -170,26 +179,36 @@ function plane2DLoop(opt){
     w.getInterface().register( 'mousedown',widgetBack, widgetBack.mousedownCallback );
     w.getInterface().register( 'touchstart',widgetBack, widgetBack.touchstartCallback );
 
-    var imgBeautifulParam = w.getCutImage(imgBeautiful);
+    
     
     return{
         loop:function(td){
-
-            //console.log(td);
+            ctx.clearRect(0,0,ctx.canvas.width, ctx.canvas.height);
+            ctx.fillStyle='red';
+            ctx.fillRect(0,200, ctx.canvas.width, ctx.canvas.height);
             
-            //ctx.fillStyle = 'blue';
-            //ctx.fillRect(0,0,ctx.canvas.width, ctx.canvas.height);
+            // ctx.drawImage(imgBeautiful,
+            //               0,
+            //               0
+            //              );
+            // ctx.drawImage(imgBeautiful,
+            //               0,
+            //               100
+            //              );
 
-            ctx.drawImage(imgBeautiful,
-                          imgBeautifulParam.x,
-                          imgBeautifulParam.y,
-                          imgBeautifulParam.width,
-                          imgBeautifulParam.height,
-                          0,
-                          0,
-                          ctx.canvas.width,
-                          ctx.canvas.height
-                         );
+            // ctx.drawImage(imgBeautiful,
+            //               imgBeautifulParam.x,
+            //               imgBeautifulParam.y,
+            //               imgBeautifulParam.width,
+            //               imgBeautifulParam.height,
+            //               0,
+            //               0,
+            //               ctx.canvas.width,
+            //               ctx.canvas.height
+            //              );
+            
+            ctx.drawImage(img, 0,0, 14, 14, 200 , 300 ,14, 14);
+            ctx.drawImage(img, 0, 0, 14, 14, 200, 280, 14, 14);
 
             _.each(widgetList,function(c){
                 c.draw(ctx);
@@ -199,7 +218,7 @@ function plane2DLoop(opt){
         houseKeeping: function(){
             console.log('housekeeping of:'+ name);
             w.getInterface().clear();
-
+            w.clearCanvas();
         }
     };
 } // end of plane2DLoop
@@ -328,35 +347,38 @@ window.w = (function(){
         canvas.height = window.innerHeight;
         canvas.id = 'canvas_2d';
         document.body.appendChild(canvas);
-
+        
         // init context
-        ctx = canvas.getContext("2d");
-
-        canvasGL = document.createElement(navigator.isCocoonJS ? 'screencanvas' : 'canvas');
-        canvasGL.width = window.innerWidth;
-        canvasGL.height = window.innerHeight;
-        canvasGL.id = "canvas_3d";
-        document.body.appendChild(canvasGL);
-
-        try{
-            ctxGL = canvasGL.getContext('experimental-webgl');
-            ctxGL.viewportWidth = canvasGL.width;
-            ctxGL.viewPortHeight = canvasGL.height;
-        }
-        catch(e){
-            console.log('webgl init failure');
-        }
-        if(!ctxGL){
-            console.log('no gl.');
-        }
-        else{
-            console.log('gl exist');
-            ctxGL.clearColor(0,0,0,1);
-            ctxGL.clear(ctxGL.COLOR_BUFFER_BIT);
-        }
+        ctx = canvas.getContext('2d');
+        _addHook( canvas, interface, 'mousedown');
+        _addHook( canvas, interface, 'touchstart');
+        
+        // try{
+        //     ctxGL = canvasGL.getContext('experimental-webgl');
+        //     ctxGL.viewportWidth = canvasGL.width*window.devicePixelRatio;
+        //     ctxGL.viewPortHeight = canvasGL.height*window.devicePixelRatio;
+        // }
+        // catch(e){
+        //     console.log('webgl init failure');
+        // }
+        // if(!ctxGL){
+        //     console.log('no gl.');
+        // }
+        // else{
+        //     console.log('gl exist');
+        //     //ctxGL.clearColor(0,0,0,1);
+        //     //ctxGL.clear(ctxGL.COLOR_BUFFER_BIT);
+        // }
+        
     }
     //_initCanvas();
-
+    function _clearCanvas(){
+        //remove canvas_2d
+        //document.body.removeChild(canvas);
+        //ctx = null;
+        //canvas = null;
+    }
+    
     function _setGameLoop( handler,opt){
         console.log('set game loop');
         var tmp = handler(opt);
@@ -446,6 +468,9 @@ window.w = (function(){
                         }
                     );
                 }
+                else{
+                    console.log(message + ' dont exist');
+                }
             },
             dispatch: function(message,event){
                 _.each(chain[message],
@@ -476,8 +501,9 @@ window.w = (function(){
             }
         };
     }; // end of _initInterface
+    interface = _initInterface();
 
-    function addHook(obj, inter,message){
+    function _addHook(obj, inter,message){
         obj.addEventListener(message,inter.hook(message),false);
     }
 
@@ -486,12 +512,8 @@ window.w = (function(){
         init: function(callback){
             // handle message dispatch, such as mouse and touch event
             console.log('into init' + strPrintTime());
-            runSplash();
-            
-            interface = _initInterface();
 
-            addHook(canvas, interface, 'mousedown');
-            addHook( canvas, interface, 'touchstart');
+            runSplash();
 
             console.log('begin init webview' + strPrintTime());
             
@@ -506,6 +528,8 @@ window.w = (function(){
         },
         initWebview:_initWebview,
         // const1: _const1,
+        initCanvas:_initCanvas,
+        clearCanvas:_clearCanvas,
         setGameLoop: _setGameLoop,
         stopGameLoop: _stopGameLoop,
         startGameLoop: _startGameLoop,
@@ -557,6 +581,18 @@ window.w = (function(){
                 width:width0,
                 height:height0
             };
+        },
+        showCanvas:function(){
+            canvas.style.display = 'block';
+        },
+        showCanvasGL:function (){
+            canvasGL.style.display = 'block';
+        },
+        hideCanvasGL:function(){
+            canvasGL.style.display = 'none';
+        },
+        hideCanvas: function(){
+            canvas.style.display = 'none';
         }
     };
     
@@ -564,19 +600,22 @@ window.w = (function(){
 
 
 function run2D(){
-    w.setGameLoop(plane2DLoop, {context:w.getContext()});
+    w.setGameLoop(plane2DLoop, {context:w.getContext(),
+                                contextGL: w.getContextGL()});
     w.startGameLoop();
 }
 
 function runSplash(){
-    w.setGameLoop(splashLoop, {context:w.getContext()});
+    //w.initCanvas();
+    w.setGameLoop(splashLoop, {context:w.getContext()
+                              });
     w.startGameLoop();
 }
 
 function run3DCube(){
     console.log('run3DCube');
     w.setGameLoop(threeDLoop, {
-        context:w.getContext(),
+        //context:w.getContext(),
         contextGL:w.getContextGL()}
                  );
     w.startGameLoop();

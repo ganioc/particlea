@@ -57,7 +57,7 @@ $(document).ready(function(){
             Cocoon.App.forward("console.log('stop game loop()' + strPrintTime());");
             Cocoon.App.forward("w.stopGameLoop();");
         },
-        3500);
+        4000);
     
     //window.setTimeout(Cocoon.App.forward("w.stopGameLoop();",);
 
