@@ -574,11 +574,13 @@ w.pre_init({
         {
             path:'img/beautiful.png',
             name:'beautiful'
-        }        
+        },
+        {
+            path:'img/webgl-logo-256.jpg',
+            name:'logo256'
+        }
     ]
 });
-
-//runSplash();
 
 
 
