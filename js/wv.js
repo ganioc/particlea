@@ -31,18 +31,25 @@ Cocoon.App.forward('console.log("run wv.js" + strPrintTime());');
     }
 
     function _on2d(){
+        console.log('back to canvas');
         Cocoon.App.forward("run2D();");
         Cocoon.WebView.hide();
         Cocoon.Touch.enable();
         //Cocoon.App.forward("run2D();");
-        console.log('back to canvas');
 
     }
+    function _onTexture(){
+        console.log('back to canvas');
+        Cocoon.App.forward("runCubeTexture();");
+        Cocoon.WebView.hide();
+        Cocoon.Touch.enable();
 
+    }
     var wv = {
         init_load: _initLoad,
         onCube: _onCube,
-        on2D: _on2d
+        on2D: _on2d,
+        onTexture: _onTexture
         
     };
     window.wv = wv;
@@ -57,16 +64,7 @@ $(document).ready(function(){
             Cocoon.App.forward("console.log('stop game loop()' + strPrintTime());");
             Cocoon.App.forward("w.stopGameLoop();");
         },
-        3500);
-    
-    //window.setTimeout(Cocoon.App.forward("w.stopGameLoop();",);
-
-    
-    // window.setTimeout(function(){
-    //     $('#page1_caption').slideUp();
-
-    // }, 4000);
-
+        2500);
 });
 //wv.init_load();
 

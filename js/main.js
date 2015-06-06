@@ -37,29 +37,7 @@ function Widget(opt){
     };
 }
 
-function splashLoop(opt){
-    var ctxGL = opt.contextGL;
-    var name = "splashscreen";
-    console.log("into splashLoop");
-    var counter = 0;
-    function draw(gl, td){
-        gl.clearColor(0,1,0,1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-    }
-    
-    return{
-        loop:function(td){
-            draw(ctxGL,td);
-            
-        },
-        houseKeeping:function(){
-            console.log('housekeeping of:'+ name);
-            w.getInterface().clear();
 
-        }
-    };    
-    
-}
 function threeDLoop(opt){
     var name = 'threeDLoop';
     var ctxGL = opt.contextGL;
@@ -291,7 +269,7 @@ window.w = (function(){
                 window.setTimeout(function(){
                     Cocoon.App.showTheWebView();
                     console.log('begin to show the webview' + strPrintTime());
-                },3000
+                },2000
                 );
             },
             error : function(){
@@ -547,17 +525,11 @@ window.w = (function(){
 
 
 function run2D(){
-    w.setGameLoop(plane2DLoop, {
+    w.setGameLoop(cubeGeometryLoop, {
         contextGL: w.getContextGL()});
     w.startGameLoop();
 }
 
-// function runSplash(){
-//     //w.initCanvas();
-//     w.setGameLoop(splashLoop, {context:w.getContext()
-//                               });
-//     w.startGameLoop();
-// }
 
 function run3DCube(){
     console.log('run3DCube');
@@ -579,7 +551,14 @@ function runSplash(){
 
 }
 //w.initWebview();
+function runCubeTexture(){
+    console.log('runCubeTexture');
+    w.setGameLoop(cubeTextureLoop, {
+        contextGL:w.getContextGL()}
+                 );
+    w.startGameLoop();
 
+}
 w.pre_init({
     img_path:[
         { path:'css/images/icons-png/back-white.png',
