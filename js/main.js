@@ -170,7 +170,7 @@ function threeDLoop(opt){
 
     }
 
-    ctxGL.viewport(0, 0, w.getCanvas().width* window.devicePixelRatio, w.getCanvas().height*window.devicePixelRatio);
+    ctxGL.viewport(0, 0, ctxGL.canvas.width, ctxGL.canvas.height);
     initMatrices(w.getCanvas());//init modelViewMatrix, projectionMatrix
 
     initShader(ctxGL);// init vertex fragment shader
@@ -283,8 +283,8 @@ window.w = (function(){
 
     function _initCanvas(){
         canvasGL = document.createElement(navigator.isCocoonJS ? 'screencanvas' : 'canvas');
-        canvasGL.width = window.innerWidth;
-        canvasGL.height = window.innerHeight;
+        canvasGL.width = window.innerWidth * window.devicePixelRatio;
+        canvasGL.height = window.innerHeight * window.devicePixelRatio;
         canvasGL.id = 'canvas_3d';
         document.body.appendChild(canvasGL);
         
@@ -559,6 +559,22 @@ function runCubeTexture(){
     w.startGameLoop();
 
 }
+
+function runWebGLWorks(){
+    console.log('runWebGLWorks');
+    w.setGameLoop(webGLWorksLoop, {
+        contextGL:w.getContextGL()}
+                 );
+    w.startGameLoop();
+}
+function runWebGLWorkF(){
+    console.log('runWebGLWorkF');
+    w.setGameLoop(fThreeDLoop, {
+        contextGL:w.getContextGL()}
+                 );
+    w.startGameLoop();
+}
+
 w.pre_init({
     img_path:[
         { path:'css/images/icons-png/back-white.png',

@@ -1,17 +1,1037 @@
-//splash screen, duing load in webview
-function splashLoop(opt){
-    var ctxGL = opt.contextGL;
-    var name = "splashscreen";
-    console.log("into splashLoop");
-    var counter = 0;
-    function draw(gl, td){
-        gl.clearColor(0,1,0,1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
+// var webGLUtil = (function(){
+//     var projectionMatrix,
+//         modelViewMatrix,
+//         rotationAxis,
+//         shaderProgram,
+//         shaderVertexPositionAttribute,
+//         shaderTexCoordAttribute,
+//         shaderProjectionMatrixUniform,
+//         shaderModelViewMatrixUniform,
+//         shaderSamplerUniform;
+
+//     var vertexShaderSRC,
+//         fragmentShaderSRC;
+    
+//     function initMatrices(canvas){
+//         modelViewMatrix = mat4.create();
+//         mat4.translate( modelViewMatrix, modelViewMatrix, [0,0,-8]);
+        
+//         projectionMatrix = mat4.create();
+//         mat4.perspective(projectionMatrix, Math.PI/4,
+//                          canvas.width/canvas.height, 1, 10000);
+//         rotationAxis = vec3.create();
+//         vec3.normalize(rotationAxis, [1,1,1]);
+//     }
+
+//     function createShader(gl,str, type) {
+//         var shader;
+//         if (type == "fragment") {
+//             shader = gl.createShader(gl.FRAGMENT_SHADER);
+//         } else if (type == "vertex") {
+//             shader = gl.createShader(gl.VERTEX_SHADER);
+//         } else {
+//             return null;
+//         }
+//         gl.shaderSource(shader, str);
+//         gl.compileShader(shader);
+
+//         if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+//             alert(gl.getShaderInfoLog(shader));
+//             return null;
+//         }
+//         return shader;
+//     }
+
+//     function initProgram(gl, vSRC, fSRC){
+//     	// load and compile the fragment and vertex shader
+//         fragmentShader = createShader(gl,fSRC, "fragment");
+//         vertexShader = createShader(gl,vSRC, "vertex");
+
+//         // link them together into a new program
+//         var Program = gl.createProgram();
+//         gl.attachShader(Program, vertexShader);
+//         gl.attachShader(Program, fragmentShader);
+//         gl.linkProgram(Program);
+//         gl.useProgram(Program);
+//         return Program;
+//     }
+    
+//     return {
+//         initMatrices:initMatrices,
+//         setVertexShaderSRC:function(str){
+//             vertexShaderSRC = str;
+//         },
+//         setFragmentShaderSRC: function(str){
+//             fragmentShaderSRC=str;
+//         },
+//         initProgram:initProgram,
+//         getShaderVertexPositionAttribute:function(){
+//             return shaderVertexPositionAttribute;
+//         },
+//         setShaderVertexPositionAttribute:function(p){
+//             shaderVertexPositionAttribute = p;
+//         },
+//         getShaderTexCoordAttribute:function(){
+//             return shaderTexCoordAttribute;
+//         },
+//         setShaderTexCoordAttribute:function(p){
+//             shaderTexCoordAttribute = p;
+//         },
+//         getProgram:function(){
+//             return shaderProgram;
+//         },
+//         getShaderSamplerUniform:function(){
+//             return shaderSamplerUniform;
+//         },
+//         setShaderSamplerUniform:function(p){
+//             shaderSamplerUniform = p;
+//         }
+        
+//     };
+// })();
+var webGLUtil = {
+
+    createShader:function(gl, str, type){
+        var shader;
+        if(type === 'fragment'){
+            shader = gl.createShader(gl.FRAGMENT_SHADER);
+        }else if( type === 'vertex'){
+            shader = gl.createShader(gl.VERTEX_SHADER);
+        }
+        else{
+            return null;
+        }
+
+        gl.shaderSource(shader,str);
+        gl.compileShader(shader);
+
+        if( !gl.getShaderParameter(shader, gl.COMPILE_STATUS)){
+            console.log(gl.getShaderInfoLog(shader));
+            console.log(type);
+            return null;
+        }
+        return shader;
+    },
+    initShader:function(gl,vSRC,fSRC){
+    	// load and compile the fragment and vertex shader
+        var fragmentShader = webGLUtil.createShader(gl,fSRC, "fragment");
+        var vertexShader = webGLUtil.createShader(gl,vSRC, "vertex");
+
+        // link them together into a new program
+        var program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        return program;        
+    },
+    makeTranslation:function(tx, ty, tz){
+        return [
+            1,0,0,0,
+            0,1,0,0,
+            0,0,1,0,
+            tx,ty,tz,1
+        ];
+    },
+    makeXRotation:function(angleInRadians){
+        var c = Math.cos(angleInRadians);
+        var s = Math.sin(angleInRadians);
+        return [
+            1,0,0,0,
+            0,c,s,0,
+            0,-s,c,0,
+            0,0,0,1
+        ];
+    },
+    makeYRotation:function(angleInRadians){
+        var c = Math.cos(angleInRadians);
+        var s = Math.sin(angleInRadians);
+ 
+        return [
+            c, 0, -s, 0,
+            0, 1, 0, 0,
+            s, 0, c, 0,
+            0, 0, 0, 1
+        ];
+    },
+    makeZRotation:function(angleInRadians){
+        var c = Math.cos(angleInRadians);
+        var s = Math.sin(angleInRadians);
+        return [
+            c, s, 0, 0,
+           -s, c, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1,
+        ];
+    },
+    matrixMultiply:function(a,b){
+        var a00 = a[0*4+0];
+        var a01 = a[0*4+1];
+        var a02 = a[0*4+2];
+        var a03 = a[0*4+3];
+        var a10 = a[1*4+0];
+        var a11 = a[1*4+1];
+        var a12 = a[1*4+2];
+        var a13 = a[1*4+3];
+        var a20 = a[2*4+0];
+        var a21 = a[2*4+1];
+        var a22 = a[2*4+2];
+        var a23 = a[2*4+3];
+        var a30 = a[3*4+0];
+        var a31 = a[3*4+1];
+        var a32 = a[3*4+2];
+        var a33 = a[3*4+3];
+        var b00 = b[0*4+0];
+        var b01 = b[0*4+1];
+        var b02 = b[0*4+2];
+        var b03 = b[0*4+3];
+        var b10 = b[1*4+0];
+        var b11 = b[1*4+1];
+        var b12 = b[1*4+2];
+        var b13 = b[1*4+3];
+        var b20 = b[2*4+0];
+        var b21 = b[2*4+1];
+        var b22 = b[2*4+2];
+        var b23 = b[2*4+3];
+        var b30 = b[3*4+0];
+        var b31 = b[3*4+1];
+        var b32 = b[3*4+2];
+        var b33 = b[3*4+3];
+        return [a00 * b00 + a01 * b10 + a02 * b20 + a03 * b30,
+                a00 * b01 + a01 * b11 + a02 * b21 + a03 * b31,
+                a00 * b02 + a01 * b12 + a02 * b22 + a03 * b32,
+                a00 * b03 + a01 * b13 + a02 * b23 + a03 * b33,
+                a10 * b00 + a11 * b10 + a12 * b20 + a13 * b30,
+                a10 * b01 + a11 * b11 + a12 * b21 + a13 * b31,
+                a10 * b02 + a11 * b12 + a12 * b22 + a13 * b32,
+                a10 * b03 + a11 * b13 + a12 * b23 + a13 * b33,
+                a20 * b00 + a21 * b10 + a22 * b20 + a23 * b30,
+                a20 * b01 + a21 * b11 + a22 * b21 + a23 * b31,
+                a20 * b02 + a21 * b12 + a22 * b22 + a23 * b32,
+                a20 * b03 + a21 * b13 + a22 * b23 + a23 * b33,
+                a30 * b00 + a31 * b10 + a32 * b20 + a33 * b30,
+                a30 * b01 + a31 * b11 + a32 * b21 + a33 * b31,
+                a30 * b02 + a31 * b12 + a32 * b22 + a33 * b32,
+                a30 * b03 + a31 * b13 + a32 * b23 + a33 * b33];
+
+    },
+    makeScale:function(sx,sy,sz){
+        return [
+            sx, 0,  0,  0,
+            0, sy,  0,  0,
+            0,  0, sz,  0,
+            0,  0,  0,  1,
+        ];
+    },
+    make2DProjection:function(width,height,depth){
+        // Note: This matrix flips the Y axis so 0 is at the top.
+        return [
+            2 / width, 0,           0,         0,
+            0,         -2 / height, 0,         0,
+            0,         0,           2 / depth, 0,
+           -1,         1,           0,         1
+        ];
+    },
+    degToRad:function(d){
+        return d * Math.PI / 180;
+    },
+    radToDeg:function(r){
+        return r * 180 / Math.PI;
     }
+};
+
+function exampleLoop(opt){
+    /**
+     * 
+     * @param {} gl
+     * @param {} str
+     * @param {} type
+     * @returns {} 
+     */
+    var gl = opt.contextGL;
+    var name = "exampleLoop";
+    console.log("into exampleLoop");
+
+    var program;
+
+    var vertexShaderSRC = "";
+    var fragmentShaderSRC = "";
+    
+    function createGeometry(gl){
+
+    }
+
+    function initProgram(gl, vSRC, fSRC){
+        return webGLUtil.initShader(gl,vSRC,fSRC);
+    }
+    function draw(gl, bMark){
+        gl.clearColor(0,0,0,1);
+        gl.clear(gl.COLOR_BUFFER_BIT);        
+
+    }
+    program = initProgram(gl,vertexShaderSRC,fragmentShaderSRC);
+    gl.useProgram(program);
+    
+    gl.viewport(0,0,w.getCanvas().width,w.getCanvas().height);
+    //initMatrices(w.getCanvas());
+    //createGeometry(gl);
+    //initShader(gl);
     
     return{
         loop:function(td){
-            draw(ctxGL,td);
+                draw(gl,false);
+            
+        },
+        houseKeeping:function(){
+            console.log('housekeeping of:'+ name);
+            w.getInterface().clear();
+        }
+    };
+}
+// end of exampleLoop
+
+function fThreeDLoop(opt){
+    /**
+     * 
+     * @param {} gl
+     * @param {} str
+     * @param {} type
+     * @returns {} 
+     */
+    var gl = opt.contextGL;
+    var name = "fThreeDLoop";
+    console.log("into 3dLoop");
+
+    var program;
+
+    var vertexShaderSRC = ""
+        +"attribute vec4 a_position;\n"
+        +"attribute vec4 a_color;\n"
+        +"uniform mat4 u_matrix;\n"
+        +"uniform float u_fudgeFactor;\n"
+        +"varying vec4 v_color;\n"
+        +"void main(){\n"
+        +"    vec4 position = u_matrix * a_position;\n"
+        +"    float zToDivideBy = 1.0 + position.z*u_fudgeFactor;\n"
+        +"    gl_Position = vec4(position.xy/zToDivideBy, position.zw);\n"
+        +"    v_color = a_color;\n"
+        +"}\n"
+    ;
+    var fragmentShaderSRC = ""
+        +"precision mediump float;\n"
+        +"varying vec4 v_color;\n"
+        +"void main(){\n"
+        +"    gl_FragColor = v_color;\n"
+        +"}\n"
+    ;
+    
+    function createGeometry(gl){
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array([
+    // left column front
+            0,   0,  0,
+           30,   0,  0,
+            0, 150,  0,
+            0, 150,  0,
+           30,   0,  0,
+           30, 150,  0,
+
+          // top rung front
+           30,   0,  0,
+          100,   0,  0,
+           30,  30,  0,
+           30,  30,  0,
+          100,   0,  0,
+          100,  30,  0,
+
+          // middle rung front
+           30,  60,  0,
+           67,  60,  0,
+           30,  90,  0,
+           30,  90,  0,
+           67,  60,  0,
+           67,  90,  0,
+
+          // left column back
+            0,   0,  30,
+           30,   0,  30,
+            0, 150,  30,
+            0, 150,  30,
+           30,   0,  30,
+           30, 150,  30,
+
+          // top rung back
+           30,   0,  30,
+          100,   0,  30,
+           30,  30,  30,
+           30,  30,  30,
+          100,   0,  30,
+          100,  30,  30,
+
+          // middle rung back
+           30,  60,  30,
+           67,  60,  30,
+           30,  90,  30,
+           30,  90,  30,
+           67,  60,  30,
+           67,  90,  30,
+
+          // top
+            0,   0,   0,
+          100,   0,   0,
+          100,   0,  30,
+            0,   0,   0,
+          100,   0,  30,
+            0,   0,  30,
+
+          // top rung front
+          100,   0,   0,
+          100,  30,   0,
+          100,  30,  30,
+          100,   0,   0,
+          100,  30,  30,
+          100,   0,  30,
+
+          // under top rung
+          30,   30,   0,
+          30,   30,  30,
+          100,  30,  30,
+          30,   30,   0,
+          100,  30,  30,
+          100,  30,   0,
+
+          // between top rung and middle
+          30,   30,   0,
+          30,   30,  30,
+          30,   60,  30,
+          30,   30,   0,
+          30,   60,  30,
+          30,   60,   0,
+
+          // top of middle rung
+          30,   60,   0,
+          30,   60,  30,
+          67,   60,  30,
+          30,   60,   0,
+          67,   60,  30,
+          67,   60,   0,
+
+          // front of middle rung
+          67,   60,   0,
+          67,   60,  30,
+          67,   90,  30,
+          67,   60,   0,
+          67,   90,  30,
+          67,   90,   0,
+
+          // bottom of middle rung.
+          30,   90,   0,
+          30,   90,  30,
+          67,   90,  30,
+          30,   90,   0,
+          67,   90,  30,
+          67,   90,   0,
+
+          // front of bottom
+          30,   90,   0,
+          30,   90,  30,
+          30,  150,  30,
+          30,   90,   0,
+          30,  150,  30,
+          30,  150,   0,
+
+          // bottom
+          0,   150,   0,
+          0,   150,  30,
+          30,  150,  30,
+          0,   150,   0,
+          30,  150,  30,
+          30,  150,   0,
+
+          // left side
+          0,   0,   0,
+          0,   0,  30,
+          0, 150,  30,
+          0,   0,   0,
+          0, 150,  30,
+          0, 150,   0
+            ]),
+            gl.STATIC_DRAW
+        );
+    }
+    function setColors(gl){
+        gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Uint8Array(
+            [
+                // left column front
+                200,  70, 120,
+                200,  70, 120,
+                200,  70, 120,
+                200,  70, 120,
+                200,  70, 120,
+                200,  70, 120,
+
+                // top rung front
+                200,  70, 120,
+                200,  70, 120,
+                200,  70, 120,
+                200,  70, 120,
+                200,  70, 120,
+                200,  70, 120,
+
+                // middle rung front
+                200,  70, 120,
+                200,  70, 120,
+                200,  70, 120,
+                200,  70, 120,
+                200,  70, 120,
+                200,  70, 120,
+
+                // left column back
+                80, 70, 200,
+                80, 70, 200,
+                80, 70, 200,
+                80, 70, 200,
+                80, 70, 200,
+                80, 70, 200,
+
+                // top rung back
+                80, 70, 200,
+                80, 70, 200,
+                80, 70, 200,
+                80, 70, 200,
+                80, 70, 200,
+                80, 70, 200,
+
+                // middle rung back
+                80, 70, 200,
+                80, 70, 200,
+                80, 70, 200,
+                80, 70, 200,
+                80, 70, 200,
+                80, 70, 200,
+
+                // top
+                70, 200, 210,
+                70, 200, 210,
+                70, 200, 210,
+                70, 200, 210,
+                70, 200, 210,
+                70, 200, 210,
+
+                // top rung front
+                200, 200, 70,
+                200, 200, 70,
+                200, 200, 70,
+                200, 200, 70,
+                200, 200, 70,
+                200, 200, 70,
+
+                // under top rung
+                210, 100, 70,
+                210, 100, 70,
+                210, 100, 70,
+                210, 100, 70,
+                210, 100, 70,
+                210, 100, 70,
+
+                // between top rung and middle
+                210, 160, 70,
+                210, 160, 70,
+                210, 160, 70,
+                210, 160, 70,
+                210, 160, 70,
+                210, 160, 70,
+
+                // top of middle rung
+                70, 180, 210,
+                70, 180, 210,
+                70, 180, 210,
+                70, 180, 210,
+                70, 180, 210,
+                70, 180, 210,
+
+                // front of middle rung
+                100, 70, 210,
+                100, 70, 210,
+                100, 70, 210,
+                100, 70, 210,
+                100, 70, 210,
+                100, 70, 210,
+
+                // bottom of middle rung.
+                76, 210, 100,
+                76, 210, 100,
+                76, 210, 100,
+                76, 210, 100,
+                76, 210, 100,
+                76, 210, 100,
+
+                // front of bottom
+                140, 210, 80,
+                140, 210, 80,
+                140, 210, 80,
+                140, 210, 80,
+                140, 210, 80,
+                140, 210, 80,
+
+                // bottom
+                90, 130, 110,
+                90, 130, 110,
+                90, 130, 110,
+                90, 130, 110,
+                90, 130, 110,
+                90, 130, 110,
+
+                // left side
+                160, 160, 220,
+                160, 160, 220,
+                160, 160, 220,
+                160, 160, 220,
+                160, 160, 220,
+                160, 160, 220
+            ]
+        ),
+        gl.STATIC_DRAW);
+    }
+    
+    function initProgram(gl, vSRC, fSRC){
+        return webGLUtil.initShader(gl,vSRC,fSRC);
+    }
+
+    var canvas = w.getCanvas();
+
+    gl.enable(gl.DEPTH_TEST);
+    
+    function draw(gl, bMark){
+        gl.clearColor(0,0,0,1);
+        gl.clear(gl.COLOR_BUFFER_BIT);        
+        var projectionMatrix = webGLUtil.make2DProjection(canvas.width, canvas.height,400);
+        var translationMatrix = webGLUtil.makeTranslation(translation[0], translation[1], translation[2]);
+        var rotationXMatrix = webGLUtil.makeXRotation(rotation[0]);
+        var rotationYMatrix = webGLUtil.makeYRotation(rotation[1]);
+        var rotationZMatrix = webGLUtil.makeZRotation(rotation[2]);
+        var scaleMatrix = webGLUtil.makeScale(scale[0],scale[1],scale[2]);
+        var matrix = webGLUtil.matrixMultiply(scaleMatrix, rotationZMatrix);
+        matrix = webGLUtil.matrixMultiply(matrix, rotationYMatrix);
+        matrix = webGLUtil.matrixMultiply(matrix, rotationXMatrix);
+        matrix = webGLUtil.matrixMultiply(matrix, translationMatrix);
+        matrix = webGLUtil.matrixMultiply(matrix, projectionMatrix);
+
+        gl.uniformMatrix4fv(matrixLocation,false,matrix);
+        gl.uniform1f(fudgeLocation, fudgeFactor);
+        
+        gl.drawArrays(gl.TRIANGLES, 0, 16 * 6);
+        
+    }
+    program = initProgram(gl,vertexShaderSRC,fragmentShaderSRC);
+    gl.useProgram(program);
+
+      // look up where the vertex data needs to go.
+    var positionLocation = gl.getAttribLocation(program, "a_position");
+    var colorLocation = gl.getAttribLocation(program,'a_color');
+    // lookup uniforms
+    var fudgeLocation = gl.getUniformLocation(program, "u_fudgeFactor");
+    var matrixLocation = gl.getUniformLocation(program, "u_matrix");
+
+    var fudgeFactor = 1;
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation, 3,gl.FLOAT,false,0,0);
+
+    createGeometry(gl);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.enableVertexAttribArray(colorLocation);
+    gl.vertexAttribPointer(colorLocation, 3, gl.UNSIGNED_BYTE, true,0,0);
+    setColors(gl);
+
+    //gl.uniform4f(colorLocation, Math.random(),Math.random(),Math.random(), 1);
+
+    var translation = [45, 150,0];
+    var rotation = [
+        webGLUtil.degToRad(40),
+        webGLUtil.degToRad(25),
+        webGLUtil.degToRad(325)
+    ];
+    var scale = [1,1,1];
+    
+    gl.viewport(0,0,w.getCanvas().width,w.getCanvas().height);
+    //initMatrices(w.getCanvas());
+    //createGeometry(gl);
+    //initShader(gl);
+    
+    return{
+        loop:function(td){
+                draw(gl,false);
+            
+        },
+        houseKeeping:function(){
+            console.log('housekeeping of:'+ name);
+            w.getInterface().clear();
+        }
+    };
+}
+// end of 3DF
+
+
+function webGLWorksLoop(opt){
+    var gl = opt.contextGL;
+    var name = "webglworks";
+    console.log("into webglworksloop");
+    
+    var program;
+
+    var vertexShaderSRC =
+            ""
+        +"attribute vec2 a_position;\n"
+        +"uniform vec2 u_resolution;\n"
+        +"uniform vec2 u_translation;\n"
+        +"uniform vec2 u_rotation;\n"
+        +"void main(){\n"
+        +"    vec2 rotatedPosition=vec2( a_position.x * u_rotation.y + a_position.y * u_rotation.x, a_position.y * u_rotation.y - a_position.x * u_rotation.x);\n"
+        +"    vec2 position = rotatedPosition + u_translation;\n"
+        +"    vec2 zeroToOne = position/u_resolution;\n"
+        +"    vec2 zeroToTwo = zeroToOne * 2.0;\n"
+        +"    vec2 clipSpace = zeroToTwo - 1.0;\n"
+        +"    gl_Position = vec4(clipSpace* vec2(1,-1), 0, 1);\n"
+        +"}\n";
+    var fragmentShaderSRC = ""
+        +"precision mediump float;\n"
+        +"uniform vec4 u_color;\n"
+        +"void main(){\n"
+        +"    gl_FragColor = u_color;\n"
+        +"}\n";
+    
+    function createGeometry(gl,x,y){
+        var width = 100;
+        var height = 150;
+        var thickness = 30;
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array([
+                //left column
+                x,y,
+                x+thickness, y,
+                x, y + height,
+                x, y + height,
+                x + thickness, y,
+                x + thickness, y + height,
+                
+                // top rung
+                x + thickness, y,
+                x + width, y,
+                x + thickness, y + thickness,
+                x + thickness, y + thickness,
+                x + width, y,
+                x + width, y + thickness,
+                
+                // middle rung
+                x + thickness, y + thickness * 2,
+                x + width * 2 / 3, y + thickness * 2,
+                x + thickness, y + thickness * 3,
+                x + thickness, y + thickness * 3,
+                x + width * 2 / 3, y + thickness * 2,
+                x + width * 2 / 3, y + thickness * 3]),
+            gl.STATIC_DRAW);
+    }
+
+    function initProgram(gl, vSRC, fSRC){
+        return webGLUtil.initShader(gl,vSRC,fSRC);
+    }
+    function draw(gl, bMark){
+        gl.clearColor(0,0,0,1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.uniform2fv(translationLocation,translation);
+        gl.uniform2fv(rotationLocation,rotation);
+        gl.drawArrays(gl.TRIANGLES, 0, 18);
+
+    }
+    program = initProgram(gl,vertexShaderSRC,fragmentShaderSRC);
+    gl.useProgram(program);
+
+    var positionLocation = gl.getAttribLocation(program,'a_position');
+    // lookup uniforms
+    var resolutionLocation = gl.getUniformLocation(program, "u_resolution");
+    var colorLocation = gl.getUniformLocation(program, "u_color");
+    var translationLocation = gl.getUniformLocation(program, "u_translation");
+    // set the resolution
+    gl.uniform2f(resolutionLocation, w.getCanvas().width, w.getCanvas().height);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(positionLocation,2,gl.FLOAT,false,0,0);
+    createGeometry(gl,10,10);
+
+    gl.uniform4f(colorLocation, 1,0,0,1);
+
+    var translation = [100,100];
+
+    var rotationLocation = gl.getUniformLocation(program,'u_rotation');
+    var rotation = [1/2,1/2];
+    
+    gl.viewport(0,0,w.getCanvas().width,w.getCanvas().height);
+    //initMatrices(w.getCanvas());
+    //createGeometry(gl);
+    //initShader(gl);
+    
+    return{
+        loop:function(td){
+            draw(gl,false);
+            
+        },
+        houseKeeping:function(){
+            console.log('housekeeping of:'+ name);
+            w.getInterface().clear();
+        }
+    };
+
+}// end of webGLWorksLoop
+
+//splash screen, duing load in webview
+function splashLoopJumpingRectangle(opt){
+    var gl = opt.contextGL;
+    var name = "splashscreen";
+    console.log("into splashLoop");
+
+    //var fragmentShader, vertexShader;
+    var program;
+    var shaderSamplerUniform;
+    
+    function createShader(gl,str, type) {
+        var shader;
+        if (type == "fragment") {
+            shader = gl.createShader(gl.FRAGMENT_SHADER);
+        } else if (type == "vertex") {
+            shader = gl.createShader(gl.VERTEX_SHADER);
+        } else {
+            return null;
+        }
+        gl.shaderSource(shader, str);
+        gl.compileShader(shader);
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            alert(gl.getShaderInfoLog(shader));
+            return null;
+        }
+        return shader;
+    }
+    function initProgram(gl, vSRC, fSRC){
+    	// load and compile the fragment and vertex shader
+        var fragmentShader = createShader(gl,fSRC, "fragment");
+        var vertexShader = createShader(gl,vSRC, "vertex");
+
+        // link them together into a new program
+        var program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        return program;
+    }
+    var vertexShaderSRC = 
+            ""
+        +"attribute vec2 a_position;\n"
+        //+"attribute vec2 a_texCoord;\n"
+    //+"varying vec2 v_texCoord;\n"
+        +"uniform vec2 u_resolution;\n"
+        +"void main(){\n "
+        +"    vec2 zeroToOne = a_position/u_resolution;\n"
+        +"    vec2 zeroToTwo = zeroToOne * 2.0;\n"
+        +"    vec2 clipSpace = zeroToTwo - 1.0;\n"
+        +"    gl_Position = vec4(clipSpace* vec2(1,-1), 0, 1);\n"
+        //+"    v_texCoord = a_texCoord;\n"
+        +"}\n"
+    ;
+    var fragmentShaderSRC = 
+            ""
+        +"precision mediump float;\n"
+        //+"uniform sampler2D u_image;\n"
+    //+"varying vec2 v_texCoord;"
+        +"uniform vec4 u_color;\n"
+        +"void main(){\n"
+    //+"    gl_FragColor = texture2D(u_image, v_texCoord);\n"
+        +"    gl_FragColor = u_color;\n"
+        +"}\n"
+    ;
+    
+    program = initProgram(gl, vertexShaderSRC,fragmentShaderSRC);
+    gl.useProgram(program);
+
+    // create a attribute array
+    var positionLocation = gl.getAttribLocation(program, 'a_position');
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(
+        positionLocation,
+        2,
+        gl.FLOAT,
+        false,
+        0,
+        0
+    );
+    gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array(
+            [
+                    -1,-1,
+                1,-1,
+                    -1,1,
+                    -1,1,
+                1,-1,
+                1,1
+            ]
+        ),
+        gl.STATIC_DRAW
+    );
+
+
+    var colorLocation = gl.getUniformLocation(program, 'u_color');
+    gl.uniform4f(colorLocation,1,1,1,1);
+
+    var resolutionLocation = gl.getUniformLocation(program,'u_resolution');
+    gl.uniform2f(resolutionLocation,gl.canvas.width,gl.canvas.height);
+    
+    // var texCoordLocation = gl.getAttribLocation(
+    //     program,'a_texCoord');
+    
+    // gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    // gl.bufferData(
+    //     gl.ARRAY_BUFFER,
+    //     new Float32Array(
+    //         [
+    //             0,0,
+    //             1,0,
+    //             0,1,
+    //             0,1,
+    //             1,0,
+    //             1,1
+    //         ]
+    //     ),
+    //     gl.STATIC_DRAW
+    // );
+    // gl.enableVertexAttribArray(texCoordLocation);
+    // gl.vertexAttribPointer(
+    //     texCoordLocation,
+    //     2,
+    //     gl.FLOAT,
+    //     false,
+    //     0,
+    //     0
+    // );
+
+    // //gl.bindTexture( gl.TEXTURE_2D, gl.createElement() );
+    // shaderSamplerUniform = gl.getUniformLocation(program, "u_image");
+
+    // if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    //         alert("Could not initialise shaders");
+    //     }
+
+    // gl.activeTexture(gl.TEXTURE0);
+    // gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+    // gl.texParameteri(
+    //     gl.TEXTURE_2D,
+    //     gl.TEXTURE_WRAP_S,
+    //     gl.CLAMP_TO_EDGE
+    // );
+    // gl.texParameteri(
+    //     gl.TEXTURE_2D,
+    //     gl.TEXTURE_WRAP_T,
+    //     gl.CLAMP_TO_EDGE
+    //     );
+    // gl.texParameteri(
+    //     gl.TEXTURE_2D,
+    //     gl.TEXTURE_MIN_FILTER,
+    //     gl.NEAREST
+    //     );
+    // gl.texParameteri(
+    //     gl.TEXTURE_2D,
+    //     gl.TEXTURE_MAG_FILTER,
+    //     gl.NEAREST
+    // );
+
+    // gl.texImage2D(
+    //     gl.TEXTURE_2D,
+    //     0,
+    //     gl.RGBA,
+    //     gl.RGBA,
+    //     gl.UNSIGNED_BYTE,
+    //     w.getImage('splash_screen')
+    // );
+    // //gl.bindTexture(gl.TEXTURE_2D, null);
+    // gl.uniform1i(shaderSamplerUniform, 0);
+    function randomInt(range){
+        return Math.floor(Math.random()* range);
+    }
+
+    function setRectangle(gl, x, y, width, height){
+        var x1 = x,
+            y1 = y,
+            x2 = x + width,
+            y2 = y + height;
+        gl.bufferData(gl.ARRAY_BUFFER,
+                      new Float32Array(
+                          [
+                              x1,y1,
+                              x2,y1,
+                              x1,y2,
+                              x1,y2,
+                              x2,y2,
+                              x2,y1
+                          ]
+                      ),
+                      gl.STATIC_DRAW
+                     );
+    }
+
+    var WIDTH = gl.canvas.width;
+    var HEIGHT = gl.canvas.height;
+    var square_shape = {};
+    
+    square_shape.x = randomInt(WIDTH);
+    square_shape.y = randomInt(HEIGHT);
+    square_shape.width = randomInt(WIDTH);
+    square_shape.height = randomInt(HEIGHT);
+    
+    function draw(gl, bChange){
+        gl.clearColor(0,0,0,1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        if(bChange === true){
+            square_shape.x = randomInt(WIDTH);
+            square_shape.y = randomInt(HEIGHT);
+            square_shape.width = randomInt(WIDTH);
+            square_shape.height = randomInt(HEIGHT);
+        }
+
+        for(var i =0; i< 1; i++){
+            setRectangle(gl,
+                square_shape.x,
+                square_shape.y,
+                square_shape.width,
+                square_shape.height
+            );
+
+            //gl.uniform4f(colorLocation,Math.random(),
+            //Math.random(),Math.random(),1);
+            gl.uniform4f(colorLocation,1,0,0,1);
+
+            gl.drawArrays(gl.TRIANGLES,0,6);
+            
+        }
+    }
+    var counter = 0;    
+    return{
+        loop:function(td){
+            counter += td;
+            if(counter > 0.5){
+                counter = 0;
+                draw(gl,true);
+            }
+            else{
+                draw(gl,false);
+            }
             
         },
         houseKeeping:function(){
@@ -19,8 +1039,253 @@ function splashLoop(opt){
             w.getInterface().clear();
 
         }
-    };    
+    };
+
 }
+
+//splash screen, duing load in webview
+function splashLoop(opt){
+    var gl = opt.contextGL;
+    var name = "splashscreen";
+    console.log("into splashLoop");
+
+    //var fragmentShader, vertexShader;
+    var program;
+    var shaderSamplerUniform;
+    
+    function createShader(gl,str, type) {
+        var shader;
+        if (type == "fragment") {
+            shader = gl.createShader(gl.FRAGMENT_SHADER);
+        } else if (type == "vertex") {
+            shader = gl.createShader(gl.VERTEX_SHADER);
+        } else {
+            return null;
+        }
+        gl.shaderSource(shader, str);
+        gl.compileShader(shader);
+
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            alert(gl.getShaderInfoLog(shader));
+            return null;
+        }
+        return shader;
+    }
+    function initProgram(gl, vSRC, fSRC){
+    	// load and compile the fragment and vertex shader
+        var fragmentShader = createShader(gl,fSRC, "fragment");
+        var vertexShader = createShader(gl,vSRC, "vertex");
+
+        // link them together into a new program
+        var program = gl.createProgram();
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+        return program;
+    }
+    var vertexShaderSRC = 
+            ""
+        +"attribute vec2 a_position;\n"
+        +"attribute vec2 a_texCoord;\n"
+        +"varying vec2 v_texCoord;\n"
+        +"uniform vec2 u_resolution;\n"
+        +"void main(){\n"
+        +"    vec2 zeroToOne = a_position/u_resolution;\n"
+        +"    vec2 zeroToTwo = zeroToOne * 2.0;\n"
+        +"    vec2 clipSpace = zeroToTwo - 1.0;\n"
+        +"    gl_Position = vec4(clipSpace* vec2(1,-1), 0, 1);\n"
+        +"    v_texCoord = a_texCoord;\n"
+        +"}\n"
+    ;
+    var fragmentShaderSRC = 
+            ""
+        +"precision mediump float;\n"
+        +"uniform sampler2D u_image;\n"
+        +"varying vec2 v_texCoord;\n"
+        +"uniform vec4 u_color;\n"
+        +"void main(){\n"
+    //+"    gl_FragColor = texture2D(u_image, v_texCoord);\n"
+        +"    gl_FragColor = texture2D(u_image, v_texCoord).bgra;\n"
+        +"}\n"
+    ;
+    
+    program = initProgram(gl, vertexShaderSRC,fragmentShaderSRC);
+    gl.useProgram(program);
+
+    // create a attribute array
+    var positionLocation = gl.getAttribLocation(program, 'a_position');
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.enableVertexAttribArray(positionLocation);
+    gl.vertexAttribPointer(
+        positionLocation,
+        2,
+        gl.FLOAT,
+        false,
+        0,
+        0
+    );
+
+    setRectangle(gl, 0, 0, gl.canvas.width,gl.canvas.height);
+
+    var colorLocation = gl.getUniformLocation(program, 'u_color');
+    gl.uniform4f(colorLocation,1,1,1,1);
+
+    var resolutionLocation = gl.getUniformLocation(program,'u_resolution');
+    gl.uniform2f(resolutionLocation,gl.canvas.width,gl.canvas.height);
+    
+    var texCoordLocation = gl.getAttribLocation(
+         program,'a_texCoord');
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+
+    var img = w.getImage("splash_screen");
+    var imgParam = w.getCutImage(img);
+    var v_x = imgParam.x/img.width,
+        v_y = imgParam.y/img.height,
+        v_width = imgParam.width/img.width,
+        v_height = imgParam.height/img.height;
+    var vCoord=[
+        v_x,           v_y,
+        v_x + v_width, v_y,
+        v_x,           v_y + v_height,
+        v_x,           v_y + v_height,
+        v_x + v_width, v_y,
+        v_x + v_width, v_y + v_height
+    ];
+    gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array(vCoord),
+        gl.STATIC_DRAW
+    );
+    gl.enableVertexAttribArray(texCoordLocation);
+    gl.vertexAttribPointer(
+        texCoordLocation,
+        2,
+        gl.FLOAT,
+        false,
+        0,
+        0
+    );
+
+    // //gl.bindTexture( gl.TEXTURE_2D, gl.createElement() );
+    shaderSamplerUniform = gl.getUniformLocation(program, "u_image");
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+            alert("Could not initialise shaders");
+    }
+
+    // gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, gl.createTexture());
+    gl.texParameteri(
+        gl.TEXTURE_2D,
+        gl.TEXTURE_WRAP_S,
+        gl.CLAMP_TO_EDGE
+    );
+    gl.texParameteri(
+        gl.TEXTURE_2D,
+        gl.TEXTURE_WRAP_T,
+        gl.CLAMP_TO_EDGE
+        );
+    gl.texParameteri(
+        gl.TEXTURE_2D,
+        gl.TEXTURE_MIN_FILTER,
+        gl.NEAREST
+        );
+    gl.texParameteri(
+        gl.TEXTURE_2D,
+        gl.TEXTURE_MAG_FILTER,
+        gl.NEAREST
+    );
+
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        w.getImage('splash_screen')
+    );
+    // //gl.bindTexture(gl.TEXTURE_2D, null);
+    // gl.uniform1i(shaderSamplerUniform, 0);
+    function randomInt(range){
+        return Math.floor(Math.random()* range);
+    }
+
+    function setRectangle(gl, x, y, width, height){
+        var x1 = x,
+            y1 = y,
+            x2 = x + width,
+            y2 = y + height;
+        gl.bufferData(gl.ARRAY_BUFFER,
+                      new Float32Array(
+                          [
+                              x1,y1,
+                              x2,y1,
+                              x1,y2,
+                              x1,y2,
+                              x2,y1,
+                              x2,y2
+                          ]
+                      ),
+                      gl.STATIC_DRAW
+                     );
+    }
+
+    var WIDTH = gl.canvas.width;
+    var HEIGHT = gl.canvas.height;
+    var square_shape = {};
+    
+    square_shape.x = randomInt(WIDTH);
+    square_shape.y = randomInt(HEIGHT);
+    square_shape.width = randomInt(WIDTH);
+    square_shape.height = randomInt(HEIGHT);
+    
+    function draw(gl, bChange){
+        gl.clearColor(0,0,0,1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        // if(bChange === true){
+        //     square_shape.x = randomInt(WIDTH);
+        //     square_shape.y = randomInt(HEIGHT);
+        //     square_shape.width = randomInt(WIDTH);
+        //     square_shape.height = randomInt(HEIGHT);
+        // }
+
+        // for(var i =0; i< 1; i++){
+        //     setRectangle(gl,
+        //         square_shape.x,
+        //         square_shape.y,
+        //         square_shape.width,
+        //         square_shape.height
+        //     );
+
+        //     //gl.uniform4f(colorLocation,Math.random(),
+        //     //Math.random(),Math.random(),1);
+        //     gl.uniform4f(colorLocation,1,0,0,1);
+
+        gl.drawArrays(gl.TRIANGLES,0,6);
+
+    }
+    var counter = 0;    
+    return{
+        loop:function(td){
+            counter += td;
+            if(counter > 0.5){
+                counter = 0;
+                draw(gl,true);
+            }
+            else{
+                draw(gl,false);
+            }
+            
+        },
+        houseKeeping:function(){
+            console.log('housekeeping of:'+ name);
+            w.getInterface().clear();
+
+        }
+    };
+}
+
 function cubeTextureLoop(opt){
     var ctxGL = opt.contextGL;
     var name = "cubeTexture";

@@ -49,7 +49,19 @@ Cocoon.App.forward('console.log("run wv.js" + strPrintTime());');
         init_load: _initLoad,
         onCube: _onCube,
         on2D: _on2d,
-        onTexture: _onTexture
+        onTexture: _onTexture,
+        onWorks:function(){
+            console.log('back to canvas');
+            Cocoon.App.forward("runWebGLWorks();");
+            Cocoon.WebView.hide();
+            Cocoon.Touch.enable();
+        },
+        onWorkF:function(){
+            console.log('back to canvas');
+            Cocoon.App.forward("runWebGLWorkF();");
+            Cocoon.WebView.hide();
+            Cocoon.Touch.enable();
+        }
         
     };
     window.wv = wv;
