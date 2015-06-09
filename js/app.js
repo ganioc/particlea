@@ -1,96 +1,19 @@
-// var webGLUtil = (function(){
-//     var projectionMatrix,
-//         modelViewMatrix,
-//         rotationAxis,
-//         shaderProgram,
-//         shaderVertexPositionAttribute,
-//         shaderTexCoordAttribute,
-//         shaderProjectionMatrixUniform,
-//         shaderModelViewMatrixUniform,
-//         shaderSamplerUniform;
+/**
+ * @fileOverview
+ * @name app.js
+ * @author 
+ * @license 
+ */
 
-//     var vertexShaderSRC,
-//         fragmentShaderSRC;
-    
-//     function initMatrices(canvas){
-//         modelViewMatrix = mat4.create();
-//         mat4.translate( modelViewMatrix, modelViewMatrix, [0,0,-8]);
-        
-//         projectionMatrix = mat4.create();
-//         mat4.perspective(projectionMatrix, Math.PI/4,
-//                          canvas.width/canvas.height, 1, 10000);
-//         rotationAxis = vec3.create();
-//         vec3.normalize(rotationAxis, [1,1,1]);
-//     }
-
-//     function createShader(gl,str, type) {
-//         var shader;
-//         if (type == "fragment") {
-//             shader = gl.createShader(gl.FRAGMENT_SHADER);
-//         } else if (type == "vertex") {
-//             shader = gl.createShader(gl.VERTEX_SHADER);
-//         } else {
-//             return null;
-//         }
-//         gl.shaderSource(shader, str);
-//         gl.compileShader(shader);
-
-//         if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-//             alert(gl.getShaderInfoLog(shader));
-//             return null;
-//         }
-//         return shader;
-//     }
-
-//     function initProgram(gl, vSRC, fSRC){
-//     	// load and compile the fragment and vertex shader
-//         fragmentShader = createShader(gl,fSRC, "fragment");
-//         vertexShader = createShader(gl,vSRC, "vertex");
-
-//         // link them together into a new program
-//         var Program = gl.createProgram();
-//         gl.attachShader(Program, vertexShader);
-//         gl.attachShader(Program, fragmentShader);
-//         gl.linkProgram(Program);
-//         gl.useProgram(Program);
-//         return Program;
-//     }
-    
-//     return {
-//         initMatrices:initMatrices,
-//         setVertexShaderSRC:function(str){
-//             vertexShaderSRC = str;
-//         },
-//         setFragmentShaderSRC: function(str){
-//             fragmentShaderSRC=str;
-//         },
-//         initProgram:initProgram,
-//         getShaderVertexPositionAttribute:function(){
-//             return shaderVertexPositionAttribute;
-//         },
-//         setShaderVertexPositionAttribute:function(p){
-//             shaderVertexPositionAttribute = p;
-//         },
-//         getShaderTexCoordAttribute:function(){
-//             return shaderTexCoordAttribute;
-//         },
-//         setShaderTexCoordAttribute:function(p){
-//             shaderTexCoordAttribute = p;
-//         },
-//         getProgram:function(){
-//             return shaderProgram;
-//         },
-//         getShaderSamplerUniform:function(){
-//             return shaderSamplerUniform;
-//         },
-//         setShaderSamplerUniform:function(p){
-//             shaderSamplerUniform = p;
-//         }
-        
-//     };
-// })();
 var webGLUtil = {
 
+    /**
+     * 
+     * @param {} gl
+     * @param {} str
+     * @param {} type
+     * @returns {} 
+     */
     createShader:function(gl, str, type){
         var shader;
         if(type === 'fragment'){
@@ -239,6 +162,130 @@ var webGLUtil = {
     }
 };
 
+/**
+ * 
+ * @param {} opt
+ * @returns {} 
+ */
+function pointWebGLLoop(opt){
+    var gl = opt.contextGL;
+    var name = "pointWebGLLoop";
+    console.log("into pointWebGLLoop");
+
+    var program;
+    var modelViewMatrix, projectionMatrix;
+
+    var vertexShaderSRC =
+            ""
+        +"attribute vec3 a_position;\n"
+        +"uniform mat4 modelViewMatrix;\n"
+        //+"uniform mat4 projectionMatrix;\n"
+        +"void main(void){\n"
+        +"    gl_Position= modelViewMatrix * vec4(a_position,1.0);\n"
+        +"}\n"
+    ;
+    var fragmentShaderSRC = ""
+        +"precision mediump float;\n"
+        +"uniform vec4 u_color;\n"
+        +"void main(void){\n"
+        +"    gl_FragColor= u_color;\n"
+        +"}\n"
+    ;
+
+    var objList = [];
+    
+    function initProgram(gl, vSRC, fSRC){
+        return webGLUtil.initShader(gl,vSRC,fSRC);
+    }
+    function initMatrices(canvas){
+        modelViewMatrix = mat4.create();
+        mat4.translate(modelViewMatrix , modelViewMatrix,[0,0.5,0]);
+
+        // 45 degree field of view
+        // projectionMatrix = mat4.create();
+        // mat4.perspective(
+        //     projectionMatrix,
+        //     Math.PI/4,
+        //     canvas.width/canvas.height,
+        //     1,
+        //     10000
+        // );
+    }
+    program = initProgram(gl,vertexShaderSRC,fragmentShaderSRC);
+
+    initMatrices(w.getCanvas());
+
+    // vertex positions
+    var positionLocation = gl.getAttribLocation(program, 'a_position');
+    var modelViewMatrixLocation = gl.getUniformLocation(program,'modelViewMatrix');
+    var colorLocation = gl.getUniformLocation(program,'u_color');
+//    var projectionMatrixLocation = gl.getUniformLocation(program, 'projectionMatrix');
+    var vertexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER,vertexBuffer);
+    gl.enableVertexAttribArray(positionLocation);
+    
+    var objTriangle = {
+        verts:[
+                -0.5, -0.5 ,0,
+            0.5, -0.5, 0,
+            0, 0.5, 0
+        ],
+        buffer:vertexBuffer,
+        location:positionLocation,
+        vertSize:3,
+        nVerts:3,
+        primtype:gl.TRIANGLE_STRIP,
+        program:program,
+        mvMatrix:modelViewMatrix,
+        mvMatrixLocation:modelViewMatrixLocation,
+        color:[1,0,0,1],
+        colorLocation:colorLocation
+    };
+    gl.vertexAttribPointer(positionLocation,objTriangle.vertSize, gl.FLOAT, false, 0, 0);
+    
+    objList.push(objTriangle);
+
+    gl.viewport(0,0,w.getCanvas().width,w.getCanvas().height);
+
+    function draw(gl, bMark){
+        gl.clearColor(0,0,0,1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+
+        
+        for( var i =0; i< objList.length;i ++){
+            var o = objList[i];
+            gl.useProgram(o.program);
+            //gl.uniformMatrix4fv(projectionMatrixLocation, false, projectionMatrix);
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, o.buffer);
+            gl.bufferData(gl.ARRAY_BUFFER,
+                          new Float32Array(o.verts),
+                          gl.STATIC_DRAW);
+            gl.uniformMatrix4fv(o.mvMatrixLocation, false, o.mvMatrix);
+            gl.uniform4fv(o.colorLocation,o.color);
+            gl.drawArrays(o.primtype, 0, o.nVerts);
+        }
+    }
+    
+    return{
+        loop:function(td){
+            draw(gl,false);
+        },
+        houseKeeping:function(){
+            console.log('housekeeping of:'+ name);
+            w.getInterface().clear();
+        }
+    };
+}
+// end of pointWebGLLoop
+
+
+/**
+ * this is a demo program for webgl app
+ * @param {} opt
+ * @returns {} 
+ */
 function exampleLoop(opt){
     /**
      * 
@@ -1281,7 +1328,8 @@ function splashLoop(opt){
         houseKeeping:function(){
             console.log('housekeeping of:'+ name);
             w.getInterface().clear();
-
+            gl.clearColor(0,0,0,1);
+            gl.clearColor(0,0,w.getCanvas().width, w.getCanvas().height);
         }
     };
 }

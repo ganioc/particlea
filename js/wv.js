@@ -61,6 +61,12 @@ Cocoon.App.forward('console.log("run wv.js" + strPrintTime());');
             Cocoon.App.forward("runWebGLWorkF();");
             Cocoon.WebView.hide();
             Cocoon.Touch.enable();
+        },
+        onPointWebGL:function(){
+            console.log('back to canvas');
+            Cocoon.App.forward("runPointWebGL();");
+            Cocoon.WebView.hide();
+            Cocoon.Touch.enable();
         }
         
     };

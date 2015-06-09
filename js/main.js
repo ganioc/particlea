@@ -575,6 +575,14 @@ function runWebGLWorkF(){
     w.startGameLoop();
 }
 
+function runPointWebGL(){
+    console.log('runWebGLWorkF');
+    w.setGameLoop(pointWebGLLoop, {
+        contextGL:w.getContextGL()}
+                 );
+    w.startGameLoop();
+}
+
 w.pre_init({
     img_path:[
         { path:'css/images/icons-png/back-white.png',
