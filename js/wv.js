@@ -45,6 +45,18 @@ Cocoon.App.forward('console.log("run wv.js" + strPrintTime());');
         Cocoon.Touch.enable();
 
     }
+
+    function generate_func(str){
+
+        return function(e){
+            console.log('back to canvas');
+            Cocoon.App.forward(str);
+            Cocoon.WebView.hide();
+            Cocoon.Touch.enable();
+
+        };
+    }
+    
     var wv = {
         init_load: _initLoad,
         onCube: _onCube,
@@ -62,11 +74,15 @@ Cocoon.App.forward('console.log("run wv.js" + strPrintTime());');
             Cocoon.WebView.hide();
             Cocoon.Touch.enable();
         },
-        onPointWebGL:function(){
+        onPointWebGL:function(e){
             console.log('back to canvas');
             Cocoon.App.forward("runPointWebGL();");
             Cocoon.WebView.hide();
             Cocoon.Touch.enable();
+        },
+        onFworkfire:generate_func("runFireworksWebGL();"),
+        onEnd:function(){
+            console.log("I'm the end.");
         }
         
     };

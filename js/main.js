@@ -305,8 +305,6 @@ window.w = (function(){
             ctxGL.clearColor(0,0,0,1);
             ctxGL.clear(ctxGL.COLOR_BUFFER_BIT);
         }
-
-        
         
     }
     //_initCanvas();
@@ -578,6 +576,14 @@ function runWebGLWorkF(){
 function runPointWebGL(){
     console.log('runWebGLWorkF');
     w.setGameLoop(pointWebGLLoop, {
+        contextGL:w.getContextGL()}
+                 );
+    w.startGameLoop();
+}
+
+function runFireworksWebGL(){
+    console.log('runfireworks');
+    w.setGameLoop(fireworksWebGLLoop, {
         contextGL:w.getContextGL()}
                  );
     w.startGameLoop();

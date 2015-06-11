@@ -159,7 +159,11 @@ var webGLUtil = {
     },
     radToDeg:function(r){
         return r * 180 / Math.PI;
+    },
+    fuzzy:function(range, base){
+        return (base||0) + (Math.random()-0.5)*range*2;
     }
+
 };
 
 /**
@@ -177,18 +181,30 @@ function pointWebGLLoop(opt){
 
     var vertexShaderSRC =
             ""
-        +"attribute vec3 a_position;\n"
-        +"uniform mat4 modelViewMatrix;\n"
+        +"attribute vec4 a_vertex;\n"
+        +"attribute vec4 a_color;\n"
+        +"uniform mat4 u_matrix;\n"
+        +"uniform vec2 u_resolution;\n"
+        +"varying vec4 v_color;\n"
         //+"uniform mat4 projectionMatrix;\n"
         +"void main(void){\n"
-        +"    gl_Position= modelViewMatrix * vec4(a_position,1.0);\n"
+        // +"    vec2 position= a_position/u_resolution;\n"
+        // +"    vec2 zeroToTwo = position * 2.0;\n"
+        // +"    vec2 clipSpace = zeroToTwo - 1.0;\n"
+        // +"    gl_PointSize = 4.0;\n"
+    //        +"    position=[0.5,0.5];\n"
+    //+"    gl_Position= modelViewMatrix * vec4(clipSpace * vec2(1,-1),0,1.0);\n"
+        +"    gl_PointSize= min(5.0,length(a_vertex)*0.1);\n"
+        +"    gl_Position= u_matrix * a_vertex;\n"    
+        +"    v_color = a_color;\n"
         +"}\n"
     ;
     var fragmentShaderSRC = ""
         +"precision mediump float;\n"
         +"uniform vec4 u_color;\n"
+        +"varying vec4 v_color;\n"
         +"void main(void){\n"
-        +"    gl_FragColor= u_color;\n"
+        +"    gl_FragColor= v_color;\n"
         +"}\n"
     ;
 
@@ -199,7 +215,7 @@ function pointWebGLLoop(opt){
     }
     function initMatrices(canvas){
         modelViewMatrix = mat4.create();
-        mat4.translate(modelViewMatrix , modelViewMatrix,[0,0.5,0]);
+        //mat4.translate(modelViewMatrix , modelViewMatrix,[0,0,0]);
 
         // 45 degree field of view
         // projectionMatrix = mat4.create();
@@ -215,62 +231,106 @@ function pointWebGLLoop(opt){
 
     initMatrices(w.getCanvas());
 
-    // vertex positions
-    var positionLocation = gl.getAttribLocation(program, 'a_position');
-    var modelViewMatrixLocation = gl.getUniformLocation(program,'modelViewMatrix');
-    var colorLocation = gl.getUniformLocation(program,'u_color');
-//    var projectionMatrixLocation = gl.getUniformLocation(program, 'projectionMatrix');
-    var vertexBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER,vertexBuffer);
-    gl.enableVertexAttribArray(positionLocation);
+//     // vertex positions
+//     var positionLocation = gl.getAttribLocation(program, 'a_position');
+//     var modelViewMatrixLocation = gl.getUniformLocation(program,'modelViewMatrix');
+//     var colorLocation = gl.getUniformLocation(program,'u_color');
+//     var resolutionLocation = gl.getUniformLocation(program,'u_resolution');
     
-    var objTriangle = {
-        verts:[
-                -0.5, -0.5 ,0,
-            0.5, -0.5, 0,
-            0, 0.5, 0
-        ],
-        buffer:vertexBuffer,
-        location:positionLocation,
-        vertSize:3,
-        nVerts:3,
-        primtype:gl.TRIANGLE_STRIP,
-        program:program,
-        mvMatrix:modelViewMatrix,
-        mvMatrixLocation:modelViewMatrixLocation,
-        color:[1,0,0,1],
-        colorLocation:colorLocation
-    };
-    gl.vertexAttribPointer(positionLocation,objTriangle.vertSize, gl.FLOAT, false, 0, 0);
+// //    var projectionMatrixLocation = gl.getUniformLocation(program, 'projectionMatrix');
+//     var vertexBuffer = gl.createBuffer();
+//     gl.bindBuffer(gl.ARRAY_BUFFER,vertexBuffer);
+//     gl.enableVertexAttribArray(positionLocation);
     
-    objList.push(objTriangle);
+//     var objTriangle = {
+//         verts:[
+//                 100, 100,
+//             100, 120, 
+//             100, 130, 
+//                 100,140
+//             // 0.5,0.5,
+//             // 0.5,0.4,
+//             // 0.5,0.3,
+//             // 0.5,0.2
+//         ],
+//         buffer:vertexBuffer,
+//         location:positionLocation,
+//         vertSize:2,
+//         nVerts:4,
+//         primtype:gl.POINTS,
+//         program:program,
+//         mvMatrix:modelViewMatrix,
+//         mvMatrixLocation:modelViewMatrixLocation,
+//         color:[1,0,0,1],
+//         colorLocation:colorLocation
+//     };
+//     gl.vertexAttribPointer(positionLocation,objTriangle.vertSize, gl.FLOAT, false, 0, 0);
+    
+//     objList.push(objTriangle);
 
+    var colors =[];
+    var verts = [];
+    var theta =0;
+    for(var radius = 180.0; radius >1.0; radius -= 0.2){
+        colors.push(radius/160.0, 0.7, 1-(radius/160.0));
+        verts.push( radius*Math.cos(theta), radius*Math.sin(theta) );
+        theta += Math.PI/50;
+    }
+    var numPoints = colors.length/3;
+    var colorBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+
+    var vertBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(verts), gl.STATIC_DRAW);
+
+    var u_matLoc = gl.getUniformLocation(program, 'u_matrix');
+    var colorLoc = gl.getAttribLocation(program, 'a_color');
+    var vertLoc = gl.getAttribLocation(program, 'a_vertex');
+
+    
     gl.viewport(0,0,w.getCanvas().width,w.getCanvas().height);
 
-    function draw(gl, bMark){
+    gl.useProgram(program);
+
+    var WIDTH, HEIGHT;
+    WIDTH = w.getCanvas().width;
+    HEIGHT = w.getCanvas().height;
+
+    var VELOCITY = 300;
+
+    gl.uniformMatrix4fv(u_matLoc, false,[
+            3/WIDTH, 0, 0, 0,
+            0,       -3/HEIGHT, 0, 0,
+            0, 0, 1, 0,
+            0, 0, 0, 1
+        ]);
+
+    modelViewMatrix = mat4.create();
+    mat4.scale(modelViewMatrix, modelViewMatrix,[3/WIDTH, -3/HEIGHT,1]);    
+
+    function draw(gl, bMark,td){
         gl.clearColor(0,0,0,1);
         gl.clear(gl.COLOR_BUFFER_BIT);
 
-
+        mat4.rotateZ(modelViewMatrix,modelViewMatrix,-Math.PI*td*2);
+        gl.uniformMatrix4fv(u_matLoc, false, modelViewMatrix);
         
-        for( var i =0; i< objList.length;i ++){
-            var o = objList[i];
-            gl.useProgram(o.program);
-            //gl.uniformMatrix4fv(projectionMatrixLocation, false, projectionMatrix);
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, o.buffer);
-            gl.bufferData(gl.ARRAY_BUFFER,
-                          new Float32Array(o.verts),
-                          gl.STATIC_DRAW);
-            gl.uniformMatrix4fv(o.mvMatrixLocation, false, o.mvMatrix);
-            gl.uniform4fv(o.colorLocation,o.color);
-            gl.drawArrays(o.primtype, 0, o.nVerts);
-        }
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0,0);
+        gl.enableVertexAttribArray(colorLoc);
+        
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertBuffer);
+        gl.vertexAttribPointer(vertLoc, 2, gl.FLOAT, false, 0,0);
+        gl.enableVertexAttribArray(vertLoc);
+        
+        gl.drawArrays(gl.POINTS, 0, numPoints);
     }
     
     return{
         loop:function(td){
-            draw(gl,false);
+            draw(gl,false,td);
         },
         houseKeeping:function(){
             console.log('housekeeping of:'+ name);
@@ -280,6 +340,153 @@ function pointWebGLLoop(opt){
 }
 // end of pointWebGLLoop
 
+/**
+ * this is a demo program for fireworks, I will use webgl to do it
+ * @param {} opt, include some webgl context handler, and arguments possible
+ * @returns {} a function to be used by requestAnimateFrame() 
+ */
+function fireworksWebGLLoop(opt){
+    var gl = opt.contextGL;
+    var name = "fireworkswebglloop";
+    console.log("into fireworksLoop");
+
+    var WIDTH = w.getCanvas().width;
+    var HEIGHT = w.getCanvas().height;
+    var emitX = WIDTH/2;
+    var emitY = HEIGHT/2;
+
+    var PARTICLE_NUM = 100;
+    var NFIELDS = 4;
+    var MAX_PARTICLES = 20000;
+    var PARTICLES_LENGTH = MAX_PARTICLES * NFIELDS;
+    var MAX_AGE = 4;
+    var drag = 0.99;
+    var gravity = 30;
+    var particles_i = 0;
+    var particles = new Float32Array(PARTICLES_LENGTH);
+
+    var PFIELDS = 4;
+    var params = new Float32Array(MAX_PARTICLES * PFIELDS);
+    
+    var program;
+
+    var vertexShaderSRC =""
+        +"attribute vec4 a_vertex;\n"
+        +"attribute vec4 a_param;\n"
+        +"uniform vec2 u_resolution;\n"
+        +"uniform mat4 u_matrix;\n"
+        +"uniform vec4 u_color;\n"
+        +"varying vec4 v_color;\n"
+        +"void main(void){\n"
+        +"    vec2 position = vec2(a_vertex.x, a_vertex.y)/u_resolution;\n"
+        +"    vec2 zeroToTwo = position * 2.0;\n"
+        +"    vec2 clipSpace = zeroToTwo - 1.0;\n"
+        +"    gl_Position= u_matrix * vec4(clipSpace * vec2(1,-1), 0.0, 1.0);\n"
+        +"    gl_PointSize = 1.0;\n"
+        +"    v_color = u_color;\n"
+        +"}\n"
+    ;
+    var fragmentShaderSRC = ""
+        +"precision mediump float;\n"
+        +"varying vec4 v_color;\n"
+        +"void main(void){\n"
+        +"    gl_FragColor = v_color;\n"
+        +"}\n"
+    ;
+
+    function emit(x,y){
+        for(var i =0; i< PARTICLE_NUM; i++){
+            particles_i = (particles_i + NFIELDS)% PARTICLES_LENGTH;
+            particles[particles_i] = x;
+            particles[particles_i + 1] = y;
+            var alpha = webGLUtil.fuzzy(Math.PI),// direction
+                radius = Math.random() * 300;  // velocity
+            particles[particles_i + 2] = Math.cos(alpha)* radius;
+            particles[particles_i + 3] = Math.sin(alpha)* radius;
+            params[particles_i] = webGLUtil.fuzzy(1);
+            //particles[particles_i + 4] = webGLUtil.fuzzy(2,2); // age
+        }
+    }
+    
+    function createGeometry(gl){
+
+    }
+
+    function initProgram(gl, vSRC, fSRC){
+        return webGLUtil.initShader(gl,vSRC,fSRC);
+    }
+    function draw(gl, td){
+        emit(emitX, emitY);
+        
+        gl.clearColor(0,0,0,1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        for(var i = 0; i< PARTICLES_LENGTH; i+= NFIELDS){
+            var x = ~~(particles[i]= (particles[i]+
+                                      (particles[i+2]*=drag)*td));
+            var y = ~~(particles[i+1] = (particles[i+1]+
+                                         (particles[i+3]=(particles[i+3] + gravity*td)*drag)*td));
+        }
+
+        gl.bindBuffer(gl.ARRAY_BUFFER,vertBuffer );
+        gl.bufferData(gl.ARRAY_BUFFER, particles, gl.STATIC_DRAW);
+        gl.vertexAttribPointer(vertLoc, NFIELDS, gl.FLOAT, false, 0,0);
+
+
+        // gl.bindBuffer(gl.ARRAY_BUFFER, paramBuffer);
+        // gl.bufferData(gl.ARRAY_BUFFER,params,gl.STATIC_DRAW);
+        // gl.vertexAttribPointer(paramLoc, 2, gl.FLOAT, false, 0,0);
+        // gl.enableVertexAttribArray(paramLoc);
+        
+        gl.drawArrays(gl.POINTS, 0, MAX_PARTICLES);
+    }
+    
+    program = initProgram(gl,vertexShaderSRC,fragmentShaderSRC);
+    gl.useProgram(program);
+
+    var vertBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, vertBuffer);
+    var vertLoc = gl.getAttribLocation(program, 'a_vertex');
+    gl.enableVertexAttribArray(vertLoc);
+    gl.bufferData(gl.ARRAY_BUFFER, particles, gl.STATIC_DRAW);
+    
+    // var paramBuffer = gl.createBuffer();
+    // gl.bindBuffer(gl.ARRAY_BUFFER, paramBuffer);
+    // var paramLoc = gl.getAttribLocation(program, 'a_param');
+    // gl.enableVertexAttribArray(paramLoc);
+    // gl.bufferData(gl.ARRAY_BUFFER, params, gl.STATIC_DRAW);    
+
+    var resolutionLoc = gl.getUniformLocation(program, 'u_resolution');
+    gl.uniform2f(resolutionLoc,WIDTH,HEIGHT);
+    
+    var matrixLoc = gl.getUniformLocation(program, 'u_matrix');
+    gl.uniformMatrix4fv(matrixLoc, false,[
+        1,0,0,0,
+        0,1,0,0,
+        0,0,1,0,
+        0,0,0,1
+    ]);
+    var colorLoc = gl.getUniformLocation(program, 'u_color');
+    gl.uniform4fv(colorLoc, [125, 155, 0, 0.8 ]);
+    
+    gl.viewport(0,0,w.getCanvas().width,w.getCanvas().height);
+    //initMatrices(w.getCanvas());
+    //createGeometry(gl);
+    //initShader(gl);
+    
+    return{
+        loop:function(td){
+                draw(gl,td);
+            
+        },
+        houseKeeping:function(){
+            console.log('housekeeping of:'+ name);
+            w.getInterface().clear();
+        }
+    };
+}
+// end of fireworks
+
 
 /**
  * this is a demo program for webgl app
@@ -287,13 +494,6 @@ function pointWebGLLoop(opt){
  * @returns {} 
  */
 function exampleLoop(opt){
-    /**
-     * 
-     * @param {} gl
-     * @param {} str
-     * @param {} type
-     * @returns {} 
-     */
     var gl = opt.contextGL;
     var name = "exampleLoop";
     console.log("into exampleLoop");
