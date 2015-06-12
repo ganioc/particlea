@@ -364,8 +364,8 @@ window.w = (function(){
         var chain = {
             touchstart:[],
             touchmove:[],
-            mousedown:[],
-            touchend:[]
+            touchend:[],
+            mousedown:[]
         };
 
         // loop the message list to triger the func
@@ -452,7 +452,7 @@ window.w = (function(){
 
             _addHook(canvasGL, interface, 'mousedown');
             _addHook(canvasGL, interface, 'touchstart');
-            
+            _addHook(canvasGL, interface, 'touchmove');
             console.log('begin init webview' + strPrintTime());
             
             _initWebview();

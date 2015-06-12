@@ -352,21 +352,20 @@ function fireworksWebGLLoop(opt){
 
     var WIDTH = w.getCanvas().width;
     var HEIGHT = w.getCanvas().height;
-    var emitX = WIDTH/2;
-    var emitY = HEIGHT/2;
+    var emitX =  WIDTH/2;
+    var emitY =  HEIGHT/2;
 
-    var PARTICLE_NUM = 100;
+    var PARTICLE_NUM = 300;
     var NFIELDS = 4;
-    var MAX_PARTICLES = 20000;
+    var MAX_PARTICLES = 60000;
     var PARTICLES_LENGTH = MAX_PARTICLES * NFIELDS;
-    var MAX_AGE = 4;
-    var drag = 0.99;
-    var gravity = 30;
+    var MAX_AGE = 6;
+    var VELOCITY = 250;
+    var drag = 0.999;
+    var gravity = 50;
     var particles_i = 0;
     var particles = new Float32Array(PARTICLES_LENGTH);
-
-    var PFIELDS = 4;
-    var params = new Float32Array(MAX_PARTICLES * PFIELDS);
+    var params = new Float32Array(PARTICLES_LENGTH);
     
     var program;
 
@@ -376,14 +375,19 @@ function fireworksWebGLLoop(opt){
         +"uniform vec2 u_resolution;\n"
         +"uniform mat4 u_matrix;\n"
         +"uniform vec4 u_color;\n"
+        +"uniform float u_age;\n"
         +"varying vec4 v_color;\n"
         +"void main(void){\n"
         +"    vec2 position = vec2(a_vertex.x, a_vertex.y)/u_resolution;\n"
         +"    vec2 zeroToTwo = position * 2.0;\n"
         +"    vec2 clipSpace = zeroToTwo - 1.0;\n"
         +"    gl_Position= u_matrix * vec4(clipSpace * vec2(1,-1), 0.0, 1.0);\n"
-        +"    gl_PointSize = 1.0;\n"
-        +"    v_color = u_color;\n"
+        +"    gl_PointSize = 2.0;\n"
+        +"    if(a_param[0] <= u_age){\n"
+        //+"    float cTemp = "
+        +"    v_color = u_color;}\n"
+        +"    else{\n"
+        +"    v_color = vec4(0,0,0,1);}\n"
         +"}\n"
     ;
     var fragmentShaderSRC = ""
@@ -400,10 +404,10 @@ function fireworksWebGLLoop(opt){
             particles[particles_i] = x;
             particles[particles_i + 1] = y;
             var alpha = webGLUtil.fuzzy(Math.PI),// direction
-                radius = Math.random() * 300;  // velocity
+                radius = Math.random() * VELOCITY;  // velocity
             particles[particles_i + 2] = Math.cos(alpha)* radius;
             particles[particles_i + 3] = Math.sin(alpha)* radius;
-            params[particles_i] = webGLUtil.fuzzy(1);
+            params[particles_i] = webGLUtil.fuzzy(1); // age
             //particles[particles_i + 4] = webGLUtil.fuzzy(2,2); // age
         }
     }
@@ -415,46 +419,24 @@ function fireworksWebGLLoop(opt){
     function initProgram(gl, vSRC, fSRC){
         return webGLUtil.initShader(gl,vSRC,fSRC);
     }
-    function draw(gl, td){
-        emit(emitX, emitY);
-        
-        gl.clearColor(0,0,0,1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-
-        for(var i = 0; i< PARTICLES_LENGTH; i+= NFIELDS){
-            var x = ~~(particles[i]= (particles[i]+
-                                      (particles[i+2]*=drag)*td));
-            var y = ~~(particles[i+1] = (particles[i+1]+
-                                         (particles[i+3]=(particles[i+3] + gravity*td)*drag)*td));
-        }
-
-        gl.bindBuffer(gl.ARRAY_BUFFER,vertBuffer );
-        gl.bufferData(gl.ARRAY_BUFFER, particles, gl.STATIC_DRAW);
-        gl.vertexAttribPointer(vertLoc, NFIELDS, gl.FLOAT, false, 0,0);
-
-
-        // gl.bindBuffer(gl.ARRAY_BUFFER, paramBuffer);
-        // gl.bufferData(gl.ARRAY_BUFFER,params,gl.STATIC_DRAW);
-        // gl.vertexAttribPointer(paramLoc, 2, gl.FLOAT, false, 0,0);
-        // gl.enableVertexAttribArray(paramLoc);
-        
-        gl.drawArrays(gl.POINTS, 0, MAX_PARTICLES);
-    }
     
     program = initProgram(gl,vertexShaderSRC,fragmentShaderSRC);
     gl.useProgram(program);
 
+    var pLoc = gl.getAttribLocation(program, 'a_param');    
+    var pBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, pBuffer);
+    gl.vertexAttribPointer(pLoc,NFIELDS, gl.FLOAT,false, 0,0);
+    gl.enableVertexAttribArray(pLoc);
+
+    // gl.bufferData(gl.ARRAY_BUFFER, params, gl.STATIC_DRAW);    
+    var vertLoc = gl.getAttribLocation(program, 'a_vertex');
     var vertBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertBuffer);
-    var vertLoc = gl.getAttribLocation(program, 'a_vertex');
     gl.enableVertexAttribArray(vertLoc);
-    gl.bufferData(gl.ARRAY_BUFFER, particles, gl.STATIC_DRAW);
-    
-    // var paramBuffer = gl.createBuffer();
-    // gl.bindBuffer(gl.ARRAY_BUFFER, paramBuffer);
-    // var paramLoc = gl.getAttribLocation(program, 'a_param');
-    // gl.enableVertexAttribArray(paramLoc);
-    // gl.bufferData(gl.ARRAY_BUFFER, params, gl.STATIC_DRAW);    
+    gl.vertexAttribPointer(vertLoc, NFIELDS, gl.FLOAT, false, 0,0);
+    //gl.bufferData(gl.ARRAY_BUFFER, particles, gl.STATIC_DRAW);
+
 
     var resolutionLoc = gl.getUniformLocation(program, 'u_resolution');
     gl.uniform2f(resolutionLoc,WIDTH,HEIGHT);
@@ -467,13 +449,73 @@ function fireworksWebGLLoop(opt){
         0,0,0,1
     ]);
     var colorLoc = gl.getUniformLocation(program, 'u_color');
-    gl.uniform4fv(colorLoc, [125, 155, 0, 0.8 ]);
+    gl.uniform4fv(colorLoc, [120/255, 55/255, 20/255, 1 ]);
+
+    var ageLoc = gl.getUniformLocation(program, 'u_age');
+    gl.uniform1f(ageLoc, MAX_AGE);
     
     gl.viewport(0,0,w.getCanvas().width,w.getCanvas().height);
-    //initMatrices(w.getCanvas());
-    //createGeometry(gl);
-    //initShader(gl);
+
+    gl.enable(gl.BLEND); // blend mode other wise 
+    gl.blendFunc(gl.ONE, gl.ONE);
     
+    function draw(gl, td){
+        emit(emitX, emitY);
+        
+        gl.clearColor(0,0,0,0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        for(var i = 0; i< PARTICLES_LENGTH; i+= NFIELDS){
+            particles[i]= (particles[i]+
+                                      (particles[i+2]*=drag)*td);
+            particles[i+1] = (particles[i+1]+
+                              (particles[i+3]=(particles[i+3] + gravity*td)*drag)*td);
+            params[i] = params[i] + td;
+        }
+
+        gl.bindBuffer(gl.ARRAY_BUFFER,vertBuffer );
+        gl.bufferData(gl.ARRAY_BUFFER, particles, gl.STATIC_DRAW);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, pBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER,params,gl.STATIC_DRAW);
+        
+        // gl.vertexAttribPointer(paramLoc, 2, gl.FLOAT, false, 0,0);
+        // gl.enableVertexAttribArray(paramLoc);
+        
+        gl.drawArrays(gl.POINTS, 0, MAX_PARTICLES);
+    }
+
+    w.getInterface().register(
+        'mousedown',
+        {name:'canvas'},
+        function(event){
+            console.log(event.clientX + ' ' + event.clientY);
+            emitX = event.clientX;
+            emitY = event.clientY;
+        }
+    );
+    
+    
+    w.getInterface().register(
+        'touchstart',
+        {name:'canvas'},
+        function(event){
+            emitX = event.touches[0].pageX*window.devicePixelRatio;
+            emitY = Math.max(event.touches[0].pageY*window.devicePixelRatio - 70, 0);
+            // if(event.touches.length >= 2){
+            //     emitX2 = event.touches[1].pageX;
+            // }
+                                   }
+    );
+    w.getInterface().register(
+        'touchmove',
+        {name:'canvas'},
+        function(event){
+            //console.log(event.clientX + ' ' + event.clientY);
+            emitX = event.touches[0].pageX * window.devicePixelRatio;
+            emitY = Math.max(event.touches[0].pageY * window.devicePixelRatio - 70, 0);
+        }
+    );    
     return{
         loop:function(td){
                 draw(gl,td);
