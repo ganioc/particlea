@@ -589,6 +589,14 @@ function runFireworksWebGL(){
     w.startGameLoop();
 }
 
+function runMultiThing(){
+    console.log('runMultiThing');
+    w.setGameLoop(multiThingWebGLLoop, {
+        contextGL:w.getContextGL()}
+                 );
+    w.startGameLoop();
+}
+
 w.pre_init({
     img_path:[
         { path:'css/images/icons-png/back-white.png',

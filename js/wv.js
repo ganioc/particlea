@@ -81,6 +81,7 @@ Cocoon.App.forward('console.log("run wv.js" + strPrintTime());');
             Cocoon.Touch.enable();
         },
         onFworkfire:generate_func("runFireworksWebGL();"),
+        onMultiThing:generate_func('runMultiThing();'),
         onEnd:function(){
             console.log("I'm the end.");
         }
