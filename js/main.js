@@ -430,10 +430,19 @@ window.w = (function(){
             hook:_hook,
             clear:function(){
                 console.log('Clear interface list');
-                _.each(_.keys(chain),function(c){
-                    chain.c = [];
-                });
+                // _.each(_.keys(chain),function(c){
+                //     chain.c = [];
+                // });
+                chain = {
+                    touchstart:[],
+                    touchmove:[],
+                    touchend:[],
+                    mousedown:[]
+        };
                 
+            },
+            showChain:function(){
+                return chain;
             }
         };
     }; // end of _initInterface
@@ -472,10 +481,11 @@ window.w = (function(){
         stopGameLoop: _stopGameLoop,
         startGameLoop: _startGameLoop,
         pauseGameLoop: _pauseGameLoop,
+
         toWebview:function(){
             w.stopGameLoop();
             //var canvas = w.getCanvas();
-            Cocoon.App.forwardAsync("Cocoon.WebView.show(0, 0, " + ctx.canvas.width * window.devicePixelRatio + "," + ctx.canvas.height * window.devicePixelRatio + ");");
+            Cocoon.App.forwardAsync("Cocoon.WebView.show(0, 0, " + w.getCanvas().width + "," + w.getCanvas().height + ");");
             Cocoon.Touch.disable();
         },
         getContextGL:function(){

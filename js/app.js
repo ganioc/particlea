@@ -162,8 +162,14 @@ var webGLUtil = {
     },
     fuzzy:function(range, base){
         return (base||0) + (Math.random()-0.5)*range*2;
+    },
+    bWithinRect: function(cx,cy,originX,originY,width, height){
+        if( !( cx <originX || cx >(originX + width) || cy > (originY + height) || cy < originY )){
+            return true;
+        }else{
+            return false;
+        }        
     }
-
 };
 
 
@@ -757,9 +763,9 @@ function multiThingWebGLLoop(opt){
     };
     var triangleObj ={
         verts:new Float32Array([
-                                 100.0,500.0,0.0,
-                                 410.0,500.0,0.0,
-                                 510.0,810.0,0.0
+                                 100.0,340.0,0.0,
+                                 390.0,340.0,0.0,
+                                 200.0,540.0,0.0
                                  ]),
         colors:new Float32Array([
 
@@ -775,6 +781,10 @@ function multiThingWebGLLoop(opt){
     };
     var BUTTON_WIDTH = 50, SPACING = 5;
     var backBtnObj ={
+        x:WIDTH -SPACING - BUTTON_WIDTH,
+        y:SPACING,
+        width:BUTTON_WIDTH,
+        height:BUTTON_WIDTH,
         verts:new Float32Array([
             WIDTH- SPACING - BUTTON_WIDTH, SPACING,0,
             WIDTH - SPACING, SPACING, 0,
@@ -794,11 +804,22 @@ function multiThingWebGLLoop(opt){
         colorSize:4,
         colorNum:4,
         clickCallback:function(e){
-            console.log(e.clientX + '-' + e.clientY
-                       );
+            //console.log(e.clientX + '-' + e.clientY);
+            if(webGLUtil.bWithinRect(e.clientX, e.clientY,backBtnObj.x,backBtnObj.y,backBtnObj.width, backBtnObj.height )){
+                console.log('backbtn clicked');
+                e.preventDefault();
+                w.toWebview();
+            }
+        },
+        touchstartCallback:function(e){
+            if(webGLUtil.bWithinRect(e.touches[0].pageX, e.touches[0].pageY, backBtnObj.x, backBtnObj.y, backBtnObj.width, backBtnObj.height )){
+                console.log('backbtn clicked');
+                e.preventDefault();
+                w.toWebview();
+            }
         }
     };
-    objList.push(rectObj);
+    //objList.push(rectObj);
     objList.push(triangleObj);
     objList.push(backBtnObj);
 
