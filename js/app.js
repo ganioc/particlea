@@ -720,8 +720,11 @@ function multiThingWebGLLoop(opt){
     var vertexShaderSRC = ""
         +"attribute vec3 a_vertex;\n"
         +"attribute vec4 a_color;\n"
+        +"attribute vec2 a_texCoord;\n"
         +"uniform vec2 u_resolution;\n"
-        //+"uniform mat4 u_matrix;\n"
+
+    //+"uniform mat4 u_matrix;\n"
+        +"varying vec2 v_texCoord;\n"
         +"varying vec4 v_color;\n"
         +"void main(void){\n"
         +"    vec2 position = vec2(a_vertex.x, a_vertex.y)/u_resolution;\n"
@@ -731,14 +734,22 @@ function multiThingWebGLLoop(opt){
         //+"    gl_Position = vec4(a_vertex, 1.0);\n"
         +"    gl_PointSize = 10.0;\n"
         +"    v_color = a_color;\n"
+        +"    v_texCoord = a_texCoord;\n"
         //+"    v_color = vec4(0,1,0,1);\n"
         +"}\n"
     ;
     var fragmentShaderSRC = ""
         +"precision mediump float;\n"
+        +"uniform sampler2D u_image;\n"
+        +"uniform bool u_bTexture;\n"
         +"varying vec4 v_color;\n"
+        +"varying vec2 v_texCoord;\n"
         +"void main(void){\n"
-        +"    gl_FragColor = v_color;\n"
+        +"    if(u_bTexture){\n"
+        +"        gl_FragColor = texture2D(u_image, v_texCoord);\n"
+        +"    }else{\n"
+        +"        gl_FragColor = v_color;\n"
+        +"    }\n"
         +"}\n"
     ;
 
@@ -759,7 +770,8 @@ function multiThingWebGLLoop(opt){
         vertSize:3,
         vertNum:4,
         colorSize:4,
-        colorNum:4
+        colorNum:4,
+        bTexture:false
     };
     var triangleObj ={
         verts:new Float32Array([
@@ -777,23 +789,24 @@ function multiThingWebGLLoop(opt){
         vertSize:3,
         vertNum:3,
         colorSize:4,
-        colorNum:3
+        colorNum:3,
+        bTexture:false
     };
     var BUTTON_WIDTH = 50, SPACING = 5;
     var backBtnObj ={
-        x:WIDTH -SPACING - BUTTON_WIDTH,
+        x:WIDTH -SPACING - 2*BUTTON_WIDTH,
         y:SPACING,
-        width:BUTTON_WIDTH,
+        width:2*BUTTON_WIDTH,
         height:BUTTON_WIDTH,
         verts:new Float32Array([
-            WIDTH- SPACING - BUTTON_WIDTH, SPACING,0,
+            WIDTH- SPACING - 2*BUTTON_WIDTH, SPACING,0,
             WIDTH - SPACING, SPACING, 0,
-            WIDTH - SPACING - BUTTON_WIDTH,SPACING + BUTTON_WIDTH,0,
+            WIDTH - SPACING - 2*BUTTON_WIDTH,SPACING + BUTTON_WIDTH,0,
             WIDTH - SPACING, SPACING + BUTTON_WIDTH,0
                                  ]),
         colors:new Float32Array([
 
-            0,   1.0,  0,  1.0,
+            0,   1.0,  1.0,  1.0,
             0,   1,0,  0,  1.0,
             1.0, 1.0,  0,  1.0,
             1.0, 1.0,  0,  1.0
@@ -812,21 +825,63 @@ function multiThingWebGLLoop(opt){
             }
         },
         touchstartCallback:function(e){
-            if(webGLUtil.bWithinRect(e.touches[0].pageX, e.touches[0].pageY, backBtnObj.x, backBtnObj.y, backBtnObj.width, backBtnObj.height )){
-                console.log('backbtn clicked');
+            if(webGLUtil.bWithinRect(e.touches[0].pageX*window.devicePixelRatio, e.touches[0].pageY*window.devicePixelRatio, backBtnObj.x, backBtnObj.y, backBtnObj.width, backBtnObj.height )){
+                console.log('backbtn touched');
                 e.preventDefault();
                 w.toWebview();
             }
-        }
+            else{
+                console.log(e.touches[0].pageX + '-' + e.touches[0].pageY);
+                console.log('real size:' + WIDTH + ' ' + HEIGHT);
+            }
+        },
+        bTexture:false
     };
+
+    var imgBackgroundObj = {
+        verts:new Float32Array([
+            0,      0,      0,
+            WIDTH,  0,      0,
+            0,      HEIGHT, 0,
+            WIDTH,  HEIGHT, 0
+        ]),
+        img: w.getImage('beautiful'),
+        texCoord: (function(image){
+            var imgParam = w.getCutImage(image);
+            var v_x = imgParam.x/image.width,
+                v_y = imgParam.y/image.height,
+                v_width = imgParam.width/image.width,
+                v_height = imgParam.height/image.height;
+            return new Float32Array([
+                v_x,           v_y,
+                v_x + v_width, v_y,
+                v_x,           v_y + v_height,
+                v_x + v_width, v_y + v_height
+            ]);
+        })(w.getImage('beautiful')),
+        vertNum:4,
+        vertSize:3,
+        texCoordNum:4,
+        texCoordSize:2,
+        bTexture:true,
+        drawType:gl.TRIANGLE_STRIP
+    };
+
     //objList.push(rectObj);
-    objList.push(triangleObj);
+    objList.push(imgBackgroundObj);
+    //objList.push(triangleObj);
     objList.push(backBtnObj);
 
+    
     w.getInterface().register(
         'mousedown',
         {name:'backButton'},
         backBtnObj.clickCallback
+    );
+    w.getInterface().register(
+        'touchstart',
+        {name:'backButton'},
+        backBtnObj.touchstartCallback
     );
     
     function initProgram(gl, vSRC, fSRC){
@@ -847,9 +902,52 @@ function multiThingWebGLLoop(opt){
     gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
     gl.enableVertexAttribArray(colorLoc);
 
+    var texCoordLoc = gl.getAttribLocation(program, 'a_texCoord');
+    var texCoordBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+    gl.enableVertexAttribArray(texCoordLoc);
+    
+
+    // uniform initialization
     var resolutionLoc = gl.getUniformLocation(program, 'u_resolution');
     gl.uniform2f(resolutionLoc,WIDTH,HEIGHT);
 
+    // verts have texture or not
+    var bTextureLoc = gl.getUniformLocation(program, 'u_bTexture');
+
+    var sampler2DLoc = gl.getUniformLocation(program, 'u_image');
+    var sampler2DTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, sampler2DTexture);
+    gl.texParameteri(
+        gl.TEXTURE_2D,
+        gl.TEXTURE_WRAP_S,
+        gl.CLAMP_TO_EDGE
+    );
+    gl.texParameteri(
+        gl.TEXTURE_2D,
+        gl.TEXTURE_WRAP_T,
+        gl.CLAMP_TO_EDGE
+        );
+    gl.texParameteri(
+        gl.TEXTURE_2D,
+        gl.TEXTURE_MIN_FILTER,
+        gl.NEAREST
+        );
+    gl.texParameteri(
+        gl.TEXTURE_2D,
+        gl.TEXTURE_MAG_FILTER,
+        gl.NEAREST
+    );
+
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        imgBackgroundObj.img
+    );
+    
     var matrixLoc = gl.getUniformLocation(program, 'u_matrix');
     gl.uniformMatrix4fv(matrixLoc, false,[
         1,0,0,0,
@@ -867,14 +965,30 @@ function multiThingWebGLLoop(opt){
         //gl.useProgram(program);
         _.each(objList,
                function(c){
-                   gl.bindBuffer(gl.ARRAY_BUFFER, vertBuffer);
-                   gl.vertexAttribPointer(vertLoc,c.vertSize, gl.FLOAT, false, 0,0);
-                   gl.bufferData(gl.ARRAY_BUFFER, c.verts,gl.STATIC_DRAW);
-                   
-                   
-                   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-                   gl.vertexAttribPointer(colorLoc,c.colorSize,gl.FLOAT, false, 0, 0);
-                   gl.bufferData(gl.ARRAY_BUFFER, c.colors,gl.STATIC_DRAW);
+                   if(c.bTexture){//have texture to paste
+                       gl.bindBuffer(gl.ARRAY_BUFFER, vertBuffer);
+                       gl.vertexAttribPointer(vertLoc,c.vertSize, gl.FLOAT, false, 0,0);
+                       gl.bufferData(gl.ARRAY_BUFFER, c.verts,gl.STATIC_DRAW);
+
+                       gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
+                       gl.vertexAttribPointer(texCoordLoc, c.texCoordSize, gl.FLOAT,false, 0, 0);
+                       gl.bufferData(gl.ARRAY_BUFFER, c.texCoord, gl.STATIC_DRAW);
+
+                       
+                       
+                       gl.uniform1i(bTextureLoc, true);
+                   }else{
+                       gl.bindBuffer(gl.ARRAY_BUFFER, vertBuffer);
+                       gl.vertexAttribPointer(vertLoc,c.vertSize, gl.FLOAT, false, 0,0);
+                       gl.bufferData(gl.ARRAY_BUFFER, c.verts,gl.STATIC_DRAW);
+                       
+                       
+                       gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+                       gl.vertexAttribPointer(colorLoc,c.colorSize,gl.FLOAT, false, 0, 0);
+                       gl.bufferData(gl.ARRAY_BUFFER, c.colors,gl.STATIC_DRAW);
+
+                       gl.uniform1i(bTextureLoc, false);
+                   }
                    
                    gl.drawArrays(c.drawType, 0, c.vertNum);
                    
