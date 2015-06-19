@@ -82,6 +82,7 @@ Cocoon.App.forward('console.log("run wv.js" + strPrintTime());');
         },
         onFworkfire:generate_func("runFireworksWebGL();"),
         onMultiThing:generate_func('runMultiThing();'),
+        onRunningStar:generate_func('runRunningStar();'),
         onEnd:function(){
             console.log("I'm the end.");
         }

@@ -907,7 +907,6 @@ function multiThingWebGLLoop(opt){
     gl.bindBuffer(gl.ARRAY_BUFFER, texCoordBuffer);
     gl.enableVertexAttribArray(texCoordLoc);
     
-
     // uniform initialization
     var resolutionLoc = gl.getUniformLocation(program, 'u_resolution');
     gl.uniform2f(resolutionLoc,WIDTH,HEIGHT);

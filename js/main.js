@@ -607,6 +607,13 @@ function runMultiThing(){
     w.startGameLoop();
 }
 
+function runRunningStar(){
+    console.log('runRunningStar');
+    w.setGameLoop(runningStarWebGLLoop, {
+        contextGL:w.getContextGL()}
+                 );
+    w.startGameLoop();
+}
 w.pre_init({
     img_path:[
         { path:'css/images/icons-png/back-white.png',
@@ -626,7 +633,11 @@ w.pre_init({
         {
             path:'img/webgl-logo-256.jpg',
             name:'logo256'
-        }
+        },
+        {
+            path:'img/star.gif',
+            name:'star'
+        }        
     ]
 });
 
