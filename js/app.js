@@ -703,11 +703,11 @@ function fireworksWebGLLoop(opt){
 // end of fireworks
 
 /**
- * 
+ * An app to show a picture and a back-button.
  * @param {} opt
  * @returns {} 
  */
-function multiThingWebGLLoop(opt){
+function multiThingWebGLLoop1(opt){
     var gl = opt.contextGL;
     var name = "multiThingWebGLLoop";
     console.log("into multiThing Loop");
@@ -716,6 +716,43 @@ function multiThingWebGLLoop(opt){
     var objList = [];
     var WIDTH = w.getCanvas().width;
     var HEIGHT = w.getCanvas().height;
+
+    var bufferVertexShaderSRC = [
+        //"precision mediump float;",
+        "attribute vec2 a_bufferVertex;",
+        // "uniform vec2 u_bufferResolution;",
+        // "uniform vec2 u_clickPosition;",
+        // "varying vec2 v_UV;",
+        // "varying vec2 v_clickPosition;",
+        // "varying vec2 v_bufferResolution;",
+        "void main(void){",
+        //"    v_UV = vec2(a_bufferVertex.x/u_bufferResolution.x, a_bufferVertex.y/u_bufferResolution.y);",
+        //"    v_clickPosition = vec2( u_clickPosition.x/u_bufferResolution.x, u_clickPosition.y/u_bufferResolution.y);",
+        "    gl_PointSize = 1.0;",
+        //"    gl_Position = vec4(2.0*v_UV - 1.0, 0.0, 1.0);",
+        //"    v_clickPosition = 2.0 * v_clickPosition - 1.0;",
+        //"    v_clickPosition = u_clickPosition;",
+        //"    v_bufferResolution = u_bufferResolution;",
+        "}"
+    ].join("\n");
+
+    var bufferFragmentShaderSRC = [
+        "precision mediump float;",
+        "varying vec2 v_UV;",
+        "varying vec2 v_clickPosition;",
+        "varying vec2 v_bufferResolution;",
+        //"uniform sampler2D dataTexture;",// WIDTH*HEIGHT size texture
+        "void main(void){",
+        // "    vec2 pos = vec2( gl_FragCoord.x/v_bufferResolution.x, gl_FragCoord.y/v_bufferResolution.y);",
+        // "    pos = 2.0 * pos - 1.0;",
+        // "    if( (gl_FragCoord.x > 290.0 ) && (gl_FragCoord.y < v_bufferResolution.y/2.0) ){",
+        // "        gl_FragColor = vec4( 0.3, 0.0,  0.0, 0.0);",
+        // "    }else{",
+        // "        discard;",
+        // "    }",
+        "    gl_FragColor = vec4( 0.0, 0.0, 1.0, 0.0);",
+        "}"
+    ].join("\n");
     
     var vertexShaderSRC = ""
         +"attribute vec3 a_vertex;\n"
@@ -726,46 +763,54 @@ function multiThingWebGLLoop(opt){
     //+"uniform mat4 u_matrix;\n"
         +"varying vec2 v_texCoord;\n"
         +"varying vec4 v_color;\n"
+        +"varying vec2 v_resolution;\n"
         +"void main(void){\n"
         +"    vec2 position = vec2(a_vertex.x, a_vertex.y)/u_resolution;\n"
         +"    vec2 zeroToTwo = position * 2.0;\n"
         +"    vec2 clipSpace = zeroToTwo - 1.0;\n"
         +"    gl_Position= vec4(clipSpace * vec2(1,-1), 0.0, 1.0);\n"
-        //+"    gl_Position = vec4(a_vertex, 1.0);\n"
         +"    gl_PointSize = 10.0;\n"
         +"    v_color = a_color;\n"
         +"    v_texCoord = a_texCoord;\n"
-        //+"    v_color = vec4(0,1,0,1);\n"
+        +"    v_resolution = u_resolution;\n"
         +"}\n"
     ;
     var fragmentShaderSRC = ""
         +"precision mediump float;\n"
         +"uniform sampler2D u_image;\n"
+        +"uniform sampler2D u_texture0;\n"
+        +"uniform sampler2D u_texture1;\n"
         +"uniform bool u_bTexture;\n"
+        //+"uniform vec4 u_colorTuner;\n"
         +"varying vec4 v_color;\n"
         +"varying vec2 v_texCoord;\n"
+        +"varying vec2 v_resolution;\n"
         +"void main(void){\n"
+        // +"    if(gl_FragCoord.x > v_resolution.x/2.0 || gl_FragCoord.y > v_resolution.y/2.0 ){\n"
+        // +"        discard;\n"
+        // +"    }\n"
         +"    if(u_bTexture){\n"
-        +"        gl_FragColor = texture2D(u_image, v_texCoord);\n"
+        +"        gl_FragColor = texture2D(u_image, v_texCoord) + texture2D( u_texture0, v_texCoord);\n"
         +"    }else{\n"
-        +"        gl_FragColor = v_color;\n"
+        //+"        gl_FragColor = vec4(tryTempLoc, 0.0, 0.0, 1.0);\n"
+        +"        gl_FragColor = v_color;\n"    
         +"    }\n"
         +"}\n"
     ;
 
     var rectObj ={
         verts:new Float32Array([
-                                 10.0,10.0,0.0,
-                                 310.0,10.0,0.0,
-                                 10.0,310.0,0.0,
-                                 310.0,310.0,0.0
-                                 ]),
+            10.0,10.0,0.0,
+            310.0,10.0,0.0,
+            10.0,310.0,0.0,
+            310.0,310.0,0.0
+        ]),
         colors:new Float32Array([
-                                  1.0,0,0,1.0,
-                                  0,1.0,0,1.0,
-                                  0,0,1.0,1.0,
-                                  1.0,1.0,0,1.0
-                                  ]),
+            1.0,0,0,1.0,
+            1.0,0,0,1.0,
+            1,0,0,1.0,
+            1.0,0,0,1.0
+        ]),
         drawType:gl.TRIANGLE_STRIP,
         vertSize:3,
         vertNum:4,
@@ -792,7 +837,9 @@ function multiThingWebGLLoop(opt){
         colorNum:3,
         bTexture:false
     };
+
     var BUTTON_WIDTH = 50, SPACING = 5;
+
     var backBtnObj ={
         x:WIDTH -SPACING - 2*BUTTON_WIDTH,
         y:SPACING,
@@ -805,17 +852,17 @@ function multiThingWebGLLoop(opt){
             WIDTH - SPACING, SPACING + BUTTON_WIDTH,0
                                  ]),
         colors:new Float32Array([
-
-            0,   1.0,  1.0,  1.0,
-            0,   1,0,  0,  1.0,
-            1.0, 1.0,  0,  1.0,
-            1.0, 1.0,  0,  1.0
-                                  ]),
+            0,0,1.0,1.0,
+            0,0,1.0,1.0,
+            0,0,1.0,1.0,
+            0,0,1.0,1.0
+        ]),
         drawType:gl.TRIANGLE_STRIP,
         vertSize:3,
         vertNum:4,
         colorSize:4,
         colorNum:4,
+        bTexture:false,
         clickCallback:function(e){
             //console.log(e.clientX + '-' + e.clientY);
             if(webGLUtil.bWithinRect(e.clientX, e.clientY,backBtnObj.x,backBtnObj.y,backBtnObj.width, backBtnObj.height )){
@@ -834,8 +881,7 @@ function multiThingWebGLLoop(opt){
                 console.log(e.touches[0].pageX + '-' + e.touches[0].pageY);
                 console.log('real size:' + WIDTH + ' ' + HEIGHT);
             }
-        },
-        bTexture:false
+        }
     };
 
     var imgBackgroundObj = {
@@ -867,12 +913,38 @@ function multiThingWebGLLoop(opt){
         drawType:gl.TRIANGLE_STRIP
     };
 
-    //objList.push(rectObj);
+    var DELTA = 40;
+    
+    var imgRippleObj = {
+        verts:new Float32Array([
+            DELTA,    DELTA,      0,
+            WIDTH- DELTA,  DELTA,      0,
+            DELTA,      HEIGHT- DELTA, 0,
+            WIDTH- DELTA,  HEIGHT -DELTA, 0
+        ]),
+        colors:new Float32Array([
+
+            1.0,   0.0,  0.0,  1.0,
+            1.0,   0.0,  0.0,  1.0,
+            1.0,   0.0,  0.0,  1.0,
+            1.0,   0.0,  0.0,  1.0
+
+        ]),
+        vertSize:3,
+        vertNum:4,
+        colorSize:4,
+        colorNum:4,
+        drawType:gl.TRIANGLE_STRIP        
+    };
+    
     objList.push(imgBackgroundObj);
-    //objList.push(triangleObj);
+    //objList.push(imgRippleObj);
+    //objList.push(rectObj);
     objList.push(backBtnObj);
 
+
     
+    // init UI interface
     w.getInterface().register(
         'mousedown',
         {name:'backButton'},
@@ -884,13 +956,14 @@ function multiThingWebGLLoop(opt){
         backBtnObj.touchstartCallback
     );
     
-    function initProgram(gl, vSRC, fSRC){
-        return webGLUtil.initShader(gl,vSRC,fSRC);
-    }
+    program = webGLUtil.initShader(gl,vertexShaderSRC,fragmentShaderSRC);
+    var bufferProgram = webGLUtil.initShader(
+        gl,
+        bufferVertexShaderSRC, bufferFragmentShaderSRC);
 
-    program = initProgram(gl,vertexShaderSRC,fragmentShaderSRC);
     gl.useProgram(program);
 
+    
     var vertLoc = gl.getAttribLocation(program, 'a_vertex');
     var vertBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, vertBuffer);
@@ -909,35 +982,19 @@ function multiThingWebGLLoop(opt){
     
     // uniform initialization
     var resolutionLoc = gl.getUniformLocation(program, 'u_resolution');
-    gl.uniform2f(resolutionLoc,WIDTH,HEIGHT);
+    //gl.uniform2f(resolutionLoc,WIDTH,HEIGHT);
 
     // verts have texture or not
     var bTextureLoc = gl.getUniformLocation(program, 'u_bTexture');
 
-    var sampler2DLoc = gl.getUniformLocation(program, 'u_image');
-    var sampler2DTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, sampler2DTexture);
-    gl.texParameteri(
-        gl.TEXTURE_2D,
-        gl.TEXTURE_WRAP_S,
-        gl.CLAMP_TO_EDGE
-    );
-    gl.texParameteri(
-        gl.TEXTURE_2D,
-        gl.TEXTURE_WRAP_T,
-        gl.CLAMP_TO_EDGE
-        );
-    gl.texParameteri(
-        gl.TEXTURE_2D,
-        gl.TEXTURE_MIN_FILTER,
-        gl.NEAREST
-        );
-    gl.texParameteri(
-        gl.TEXTURE_2D,
-        gl.TEXTURE_MAG_FILTER,
-        gl.NEAREST
-    );
+    //var colorTunerLoc = gl.getUniformLocation(program, 'u_colorTuner');
 
+    
+    var sampler2DLoc = gl.getUniformLocation(program, 'u_image');
+    var sampler2DTexure0 = gl.getUniformLocation(program, 'u_texture0');
+    var sampler2DTexure1 = gl.getUniformLocation(program, 'u_texture1');
+    
+    var sampler2DTexture = createAndSetupTexture(gl);
     gl.texImage2D(
         gl.TEXTURE_2D,
         0,
@@ -946,7 +1003,7 @@ function multiThingWebGLLoop(opt){
         gl.UNSIGNED_BYTE,
         imgBackgroundObj.img
     );
-    
+
     var matrixLoc = gl.getUniformLocation(program, 'u_matrix');
     gl.uniformMatrix4fv(matrixLoc, false,[
         1,0,0,0,
@@ -954,14 +1011,95 @@ function multiThingWebGLLoop(opt){
         0,0,1,0,
         0,0,0,1
     ]);
+
+    // gl.useProgram(bufferProgram);
+    // particles, this is used for particle info index into a WIDTH*HEIGHT
+    // size texture
+    var particles = new Float32Array(WIDTH * HEIGHT * 2);
+    for(var j = 0; j < WIDTH*HEIGHT; j++){
+        particles[j*2] = j % WIDTH;
+        particles[j*2 +1] = Math.floor(j/WIDTH);
+    }
+    var particlesLoc = gl.getAttribLocation(bufferProgram, 'a_bufferVertex');
+    var particlesBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, particlesBuffer);
+    gl.vertexAttribPointer( particlesLoc, 2, gl.FLOAT, false, 0, 0);        
+    gl.bufferData(gl.ARRAY_BUFFER, particles, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray( particlesLoc );
+
+    var bufferResolutionLoc = gl.getUniformLocation(bufferProgram, 'u_bufferResolution');
+    var bufferClickPositionLoc = gl.getUniformLocation(bufferProgram, 'u_clickPosition');
     
-    gl.viewport(0,0,w.getCanvas().width,w.getCanvas().height);
+    /////////////////////////////////////////////////////////
+    var textures = [];  // list for textures
+    var frameBuffers = [];  // list for frame buffers
+    var textureIndex = 0;
 
+    for(var i =0 ; i<2; i++){
+        textures[i] = createAndSetupTexture(gl);
+        // make the texture the same size as the image
+        gl.texImage2D(
+            gl.TEXTURE_2D, 0, gl.RGBA, WIDTH, HEIGHT, 0,
+            gl.RGBA, gl.UNSIGNED_BYTE, null);
+        
+        frameBuffers[i] = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffers[i]);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
+                                gl.TEXTURE_2D, textures[i], 0);
+    }
+    ////////////////new added lines /////////////////////////
+    function createAndSetupTexture(gl) {
+        var texture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        // Set up texture so we can render any size image and so we are
+        // working with pixels.
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        return texture;
+    }
+    function setFramebuffer(fbo, width, height) {
+        // make this the framebuffer we are rendering to.
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+        
+        // Tell the shader the resolution of the framebuffer.
+        //gl.uniform2f(resolutionLoc, width, height);
+        
+        // Tell webgl the viewport setting needed for framebuffer.
+        gl.viewport(0, 0, width, height);
+    }
+
+    
+
+    
+    //gl.viewport(0,0,w.getCanvas().width,w.getCanvas().height);
+
+    //gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    gl.enable(gl.BLEND);
+    
     function draw(gl, bMark){
-        gl.clearColor(0,0,0,1);
-        gl.clear(gl.COLOR_BUFFER_BIT);        
+        //on texture0
+        //gl.useProgram(bufferProgram);
+        // setFramebuffer( frameBuffers[0], WIDTH, HEIGHT);
+        // gl.bindBuffer(gl.ARRAY_BUFFER, particlesBuffer);
+        // gl.vertexAttribPointer( particlesLoc, 2, gl.FLOAT, false, 0, 0);
+        // gl.bufferData(gl.ARRAY_BUFFER, particles, gl.STATIC_DRAW);
 
-        //gl.useProgram(program);
+        // gl.uniform2f( bufferResolutionLoc, WIDTH, HEIGHT);
+        // // gl.uniform2f( bufferClickPositionLoc, 100.0, 100.0);
+
+        // gl.drawArrays(gl.POINTS, 0, WIDTH*HEIGHT);
+
+        // normal write to screen output
+        gl.useProgram(program);
+        setFramebuffer( null, WIDTH, HEIGHT);
+
+        gl.clearColor(0,0,0,1);
+        gl.clear(gl.COLOR_BUFFER_BIT); //| gl.DEPTH_BUFFER_BIT);;        
+
+        gl.uniform2f(resolutionLoc, WIDTH, HEIGHT);
+        
         _.each(objList,
                function(c){
                    if(c.bTexture){//have texture to paste
@@ -973,9 +1111,23 @@ function multiThingWebGLLoop(opt){
                        gl.vertexAttribPointer(texCoordLoc, c.texCoordSize, gl.FLOAT,false, 0, 0);
                        gl.bufferData(gl.ARRAY_BUFFER, c.texCoord, gl.STATIC_DRAW);
 
-                       
-                       
                        gl.uniform1i(bTextureLoc, true);
+
+                       //TEXTURE0, original pictures
+                       gl.activeTexture(gl.TEXTURE0);
+                       gl.bindTexture(gl.TEXTURE_2D, sampler2DTexture);
+                       gl.uniform1i( sampler2DLoc, 0);
+
+                       //TEXTURE1
+                       gl.activeTexture(gl.TEXTURE1);
+                       gl.bindTexture(gl.TEXTURE_2D, textures[0]);
+                       gl.uniform1i( sampler2DTexure0, 1);
+                       
+                       //TEXTURE2
+                       gl.activeTexture(gl.TEXTURE2);
+                       gl.bindTexture( gl.TEXTURE_2D, textures[1] );
+                       gl.uniform1i(sampler2DTexure1, 2);
+
                    }else{
                        gl.bindBuffer(gl.ARRAY_BUFFER, vertBuffer);
                        gl.vertexAttribPointer(vertLoc,c.vertSize, gl.FLOAT, false, 0,0);
@@ -987,11 +1139,12 @@ function multiThingWebGLLoop(opt){
                        gl.bufferData(gl.ARRAY_BUFFER, c.colors,gl.STATIC_DRAW);
 
                        gl.uniform1i(bTextureLoc, false);
+
                    }
                    
                    gl.drawArrays(c.drawType, 0, c.vertNum);
                    
-               });
+               });// end of _.each
     }
     
     return{
@@ -1465,6 +1618,7 @@ function webGLWorksLoop(opt){
         +"    vec2 clipSpace = zeroToTwo - 1.0;\n"
         +"    gl_Position = vec4(clipSpace* vec2(1,-1), 0, 1);\n"
         +"}\n";
+
     var fragmentShaderSRC = ""
         +"precision mediump float;\n"
         +"uniform vec4 u_color;\n"
