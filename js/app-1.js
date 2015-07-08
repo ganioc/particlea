@@ -269,6 +269,7 @@ function multiThingWebGLLoop(opt){
 
     var bufferFragmentShaderSRC = [
         "precision highp float;",
+        "uniform float u_strength;",
         "varying vec2 v_UV;",
         "varying vec2 v_clickPosition;",
         "varying vec2 v_bufferResolution;",
@@ -278,14 +279,45 @@ function multiThingWebGLLoop(opt){
         "void main(){",// write the mouse clicked point as an impulse into buffer0
         "    vec2 onePixel = vec2(1.0, 1.0)/v_bufferResolution;",
         "    if((gl_FragCoord.x - v_clickPosition.x ) == -0.5 && (gl_FragCoord.y - v_clickPosition.y ) == -0.5){",
-        "        gl_FragColor = vec4(10000.0, 0.0, 0.0, 0.0);",
+        "        gl_FragColor = vec4(-u_strength, 0.0, 0.0, 0.0);",
         "    }else if( (gl_FragCoord.x - v_clickPosition.x ) == 0.5 && (gl_FragCoord.y - v_clickPosition.y ) == -0.5 ){",
-        "        gl_FragColor = vec4(-10000.0, 0.0, 0.0, 0.0);",
+        "        gl_FragColor = vec4(u_strength, 0.0, 0.0, 0.0);",
         "    }else{ ",
                 "discard; }", //""
         "}"
     ].join("\n");
 
+    var buffer3VertexShaderSRC = [
+        "attribute vec2 a_vertex3;",
+        "attribute vec2 a_texCoord3;",
+        "varying vec2 v_texCoord3;",
+        "void main(void){",
+        "    gl_Position = vec4(a_vertex3, 0.0, 1.0);",
+        "    v_texCoord3 = a_texCoord3;",
+        "}"
+    ].join("\n");
+
+    var buffer3FragmentShaderSRC = [
+        "precision highp float;",        
+        "uniform sampler2D u_3texture0;",
+        "uniform vec2 u_buffer3Resolution;",
+        "varying vec2 v_texCoord3;",
+
+        "void main(void){",
+        "    vec2 onePixel = vec2(1.0, 1.0)/u_buffer3Resolution;",
+        "    float center = texture2D(u_3texture0, v_texCoord3).r;",
+        "    float MinusOne = texture2D(u_3texture0, v_texCoord3 +vec2(-onePixel.x, 0.0)).r;",
+        "    float PlusOne = texture2D(u_3texture0, v_texCoord3 +vec2(onePixel.x,0.0)).r;",
+        "    float MinusCol = texture2D(u_3texture0, v_texCoord3 +vec2(0,-onePixel.y)).r;",
+        "    float PlusCol = texture2D(u_3texture0, v_texCoord3 +vec2(0,onePixel.y)).r;",
+        
+        "    float xColor = (center + MinusOne + PlusOne + MinusCol + PlusCol )/5.0;",
+        "    gl_FragColor = vec4(xColor, 0.0, 0.0, 0.0);",
+        "",
+        "}"
+    ].join("\n");
+
+    
     var buffer2VertexShaderSRC = [
         "attribute vec2 a_vertex2;",
         "attribute vec2 a_texCoord2;",
@@ -304,6 +336,7 @@ function multiThingWebGLLoop(opt){
         "varying vec2 v_texCoord2;",
         "void main(void){",
         "    vec2 onePixel = vec2(1.0, 1.0)/u_buffer2Resolution;",
+        "",
         "    float oldWaveHeight = texture2D(u_texture1, v_texCoord2).r;",
         "    float newMinusOne = texture2D(u_texture0,v_texCoord2 + vec2(-onePixel.x,0)).r;",
         "    float newPlusOne= texture2D(u_texture0,v_texCoord2 + vec2(onePixel.x,0)).r;",
@@ -311,6 +344,7 @@ function multiThingWebGLLoop(opt){
         "    float newPlusCol= texture2D(u_texture0, v_texCoord2 + vec2(0, onePixel.y)).r;",
         "    ",
         "    float xColor = (newMinusOne + newPlusOne + newMinusCol + newPlusCol )/2.0 - oldWaveHeight;",
+        "    xColor *= 0.98;",// damping here
         "    gl_FragColor = vec4(xColor, 0.0, 0.0, 0.0);",
         //"    gl_FragColor = vec4( texture2D(u_texture0, v_texCoord2).r, 0.0, 0.0, 0.0);",
         "",
@@ -335,17 +369,17 @@ function multiThingWebGLLoop(opt){
         "varying vec2 v_texCoord;",
         "void main(void){",
         "    vec2 onePixel = vec2(1.0, 1.0)/u_resolution;",
-        "    float waveMinusTwo = texture2D(u_texture2, v_texCoord + vec2(-2.0*onePixel.x, 0)).r;",
-        "    float waveMinusCol= texture2D(u_texture2,v_texCoord + vec2(0,-onePixel.y)).r;",
+        "    float waveMinusTwo = texture2D(u_texture2, v_texCoord + vec2(-1.0*onePixel.x, 0)).r;",
+        "    float waveMinusCol= texture2D(u_texture2,v_texCoord + vec2(0,-1.0*onePixel.y)).r;",
         "    float waveHeight = texture2D(u_texture2, v_texCoord ).r;",
         "",
-        "    float offsetX = (waveMinusTwo - waveHeight)*0.08;",
-        "    float offsetY = (waveMinusCol - waveHeight)*0.08;",
+        "    float offsetX = (waveMinusTwo - waveHeight)*0.003;",
+        "    float offsetY = (waveMinusCol - waveHeight)*0.003;",
         "",
-        "    offsetX = (offsetX<0.0)?0.0:(offsetX>u_resolution.x?u_resolution.x:offsetX);",
-        "    offsetY = (offsetY<0.0)?0.0:(offsetY>u_resolution.y?u_resolution.y:offsetY);",
-        "    float light = waveHeight*2.0 - waveMinusTwo*0.6;",
-        "    light = (light < -10.0)?(-10.0):(light>100.0?100.0:light);",
+        //"    offsetX = (offsetX<0.0)?0.0:(offsetX>u_resolution.x?u_resolution.x:offsetX);",
+        //"    offsetY = (offsetY<0.0)?0.0:(offsetY>u_resolution.y?u_resolution.y:offsetY);",
+        "    float light = waveHeight*3.0 - waveMinusTwo*0.6;",
+        "    light = (light < -20.0)?(-20.0):(light>100.0?100.0:light);",
         "    light = light/255.0;",
         "    ",
         "    gl_FragColor = texture2D(u_textureOriginal, v_texCoord + vec2(offsetX, offsetY)) + vec4(light, light, light, 0.0);",
@@ -381,12 +415,16 @@ function multiThingWebGLLoop(opt){
     var bufferProgram = webGLUtil.initShader(gl, bufferVertexShaderSRC, bufferFragmentShaderSRC);
     //var buffer1Program = webGLUtil.initShader(gl, buffer1VertexShaderSRC, buffer1FragmentShaderSRC);
     var buffer2Program = webGLUtil.initShader(gl, buffer2VertexShaderSRC, buffer2FragmentShaderSRC);
+
+    var buffer3Program = webGLUtil.initShader(gl, buffer3VertexShaderSRC, buffer3FragmentShaderSRC);    
     var program = webGLUtil.initShader(gl, vertexShaderSRC, fragmentShaderSRC);
 
     // framebuffers and textures
     var frameBuffers = [];
-    var textures = [],  textureIndex0 = 0, textureIndex1 = 1, textureIndex2 = 2;
-    for(var i =0 ; i < 3; i++){
+    var textures = [],  textureIndex0 = 0, textureIndex1 = 1, textureIndex2 = 2,
+        textureIndex3 = 3;
+    
+    for(var i =0 ; i < 4; i++){
         textures[i] = createAndSetupTexture(gl);
         // make the texture the same size as the image, RGBA used
         gl.texImage2D(
@@ -404,6 +442,7 @@ function multiThingWebGLLoop(opt){
     }
     
     var originalTexture = createAndSetupTexture(gl);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, w.getImage('beautiful'));
     
     var particles = new Float32Array(WIDTH * HEIGHT * 2);
@@ -497,9 +536,37 @@ function multiThingWebGLLoop(opt){
         var clickPositionLoc = gl.getUniformLocation(bufferProgram, 'u_clickPosition');
         gl.uniform2f( clickPositionLoc, clickPosition.x, clickPosition.y);
 
+        var strengthLoc = gl.getUniformLocation(bufferProgram, 'u_strength');
+        gl.uniform1f( strengthLoc, Math.random()* 30000.0);
+
         gl.drawArrays(gl.POINTS, 0, WIDTH*HEIGHT);
         //=====================================================================
-        // write to buffer2 from buffer0 and buffer1
+        //write to buffer3 from buffer0
+        gl.useProgram(buffer3Program);
+        setFramebuffer( frameBuffers[textureIndex3], WIDTH, HEIGHT);
+        
+        var vertsBuffer3Loc = gl.getAttribLocation(buffer3Program, 'a_vertex3');
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertsBuffer);
+        gl.vertexAttribPointer(vertsBuffer3Loc, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray( vertsBuffer3Loc );
+
+        var texCoordsBuffer3Loc = gl.getAttribLocation(buffer3Program, 'a_texCoord3');
+        gl.bindBuffer(gl.ARRAY_BUFFER, texCoordsBuffer);
+        gl.vertexAttribPointer(texCoordsBuffer3Loc, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray( texCoordsBuffer3Loc);
+
+        var uTexture0Buffer3Loc = gl.getUniformLocation(buffer3Program, 'u_3texture0');
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture( gl.TEXTURE_2D, textures[textureIndex0]  );
+        gl.uniform1i( uTexture0Buffer3Loc, 0 );
+
+        var uBuffer3ResolutionLoc = gl.getUniformLocation( buffer3Program, 'u_buffer3Resolution');
+        gl.uniform2f( uBuffer3ResolutionLoc, WIDTH, HEIGHT);        
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);        
+        
+        //====================================================================
+        // write to buffer2 from buffer3 and buffer1
         gl.useProgram(buffer2Program);
         setFramebuffer( frameBuffers[textureIndex2], WIDTH, HEIGHT);
         var vertsBuffer2Loc = gl.getAttribLocation(buffer2Program, 'a_vertex2');
@@ -514,7 +581,7 @@ function multiThingWebGLLoop(opt){
 
         var uTexture0Buffer2Loc = gl.getUniformLocation(buffer2Program, 'u_texture0');
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture( gl.TEXTURE_2D, textures[textureIndex0]  );
+        gl.bindTexture( gl.TEXTURE_2D, textures[textureIndex3]  );
         gl.uniform1i( uTexture0Buffer2Loc, 0 );
 
         var uTexture1Buffer2Loc = gl.getUniformLocation(buffer2Program, 'u_texture1');
@@ -526,7 +593,6 @@ function multiThingWebGLLoop(opt){
         gl.uniform2f( uBuffer2ResolutionLoc, WIDTH, HEIGHT);        
 
         gl.drawArrays(gl.TRIANGLES, 0, 6);
-        //=======================================================================
         
         //=======================================================================
         // write to normal display from buffer2
