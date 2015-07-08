@@ -277,10 +277,10 @@ function multiThingWebGLLoop(opt){
         "}",        
         "void main(){",// write the mouse clicked point as an impulse into buffer0
         "    vec2 onePixel = vec2(1.0, 1.0)/v_bufferResolution;",
-        "    if((gl_FragCoord.x - v_clickPosition.x ) == -0.5 && (gl_FragCoord.y - v_clickPosition.y ) > -0.5){",
-        "        gl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);",
+        "    if((gl_FragCoord.x - v_clickPosition.x ) == -0.5 && (gl_FragCoord.y - v_clickPosition.y ) == -0.5){",
+        "        gl_FragColor = vec4(10000.0, 0.0, 0.0, 0.0);",
         "    }else if( (gl_FragCoord.x - v_clickPosition.x ) == 0.5 && (gl_FragCoord.y - v_clickPosition.y ) == -0.5 ){",
-        "        gl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);",
+        "        gl_FragColor = vec4(-10000.0, 0.0, 0.0, 0.0);",
         "    }else{ ",
                 "discard; }", //""
         "}"
@@ -311,8 +311,8 @@ function multiThingWebGLLoop(opt){
         "    float newPlusCol= texture2D(u_texture0, v_texCoord2 + vec2(0, onePixel.y)).r;",
         "    ",
         "    float xColor = (newMinusOne + newPlusOne + newMinusCol + newPlusCol )/2.0 - oldWaveHeight;",
-        //"    gl_FragColor = vec4(xColor, 0.0, 0.0, 0.0);",
-        "    gl_FragColor = vec4( texture2D(u_texture0, v_texCoord2).r, 0.0, 0.0, 0.0);",
+        "    gl_FragColor = vec4(xColor, 0.0, 0.0, 0.0);",
+        //"    gl_FragColor = vec4( texture2D(u_texture0, v_texCoord2).r, 0.0, 0.0, 0.0);",
         "",
         "}"
     ].join("\n");
@@ -348,15 +348,7 @@ function multiThingWebGLLoop(opt){
         "    light = (light < -10.0)?(-10.0):(light>100.0?100.0:light);",
         "    light = light/255.0;",
         "    ",
-        "    float sample = texture2D(u_texture2, v_texCoord).r;",
-        "    if(sample > 0.0){",
-        // "        gl_FragColor =texture2D(u_textureOriginal,v_texCoord +vec2(offsetX,offsetY))",
-        // "                   + vec4(1.0, 1.0, 1.0, 0.0 );",
-        "        gl_FragColor = texture2D(u_textureOriginal, v_texCoord) + vec4(0.0,0.0,0.6,0.0);",
-        "    }else{",
-        "        gl_FragColor = texture2D(u_textureOriginal, v_texCoord) + vec4(0.0,0.0,0.0,0.0);",
-        "    }",
-        //"    gl_FragColor = texture2D(u_textureOriginal, v_texCoord) + texture2D(u_texture2, v_texCoord);",
+        "    gl_FragColor = texture2D(u_textureOriginal, v_texCoord + vec2(offsetX, offsetY)) + vec4(light, light, light, 0.0);",
         "}"
     ].join("\n");
 
