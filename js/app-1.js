@@ -238,27 +238,28 @@ function runningStarWebGLLoop(opt){
 
 function multiThingWebGLLoop(opt){
     var gl = opt.contextGL;
+    gl.getExtension('OES_texture_float');
+    
     var name = "multiThingWebGLLoop";
     console.log("into multiThing Loop");
 
     var WIDTH = w.getCanvas().width, HEIGHT = w.getCanvas().height;
 
-
     var bufferVertexShaderSRC = [
         "attribute vec2 a_bufferVertex;",
         "uniform vec2 u_bufferResolution;",
         "uniform vec2 u_clickPosition;",
+        
         "varying vec2 v_UV;",
         "varying vec2 v_clickPosition;",
         "varying vec2 v_bufferResolution;",
+        
         "vec2 convert(vec2 inp, vec2 res){",
         "    vec2 temp = inp/res;",
         "    return vec2(2.0*temp - 1.0);",
         "}",
         "void main(void){",
-//        "    v_UV = vec2( a_bufferVertex.x/u_bufferResolution.x, a_bufferVertex.y/u_bufferResolution.y );",
         "    gl_PointSize = 1.0;",
-        //        "    gl_Position = vec4(2.0*v_UV - 1.0, 0.0, 1.0);",
         "    vec2 posTemp = convert(a_bufferVertex, u_bufferResolution);",
         "    gl_Position = vec4(posTemp.x, posTemp.y, 0.0,  1.0);",
         "    v_clickPosition = vec2(u_clickPosition.x, u_bufferResolution.y - u_clickPosition.y);",
@@ -267,47 +268,99 @@ function multiThingWebGLLoop(opt){
     ].join("\n");
 
     var bufferFragmentShaderSRC = [
-        "precision mediump float;",
+        "precision highp float;",
         "varying vec2 v_UV;",
         "varying vec2 v_clickPosition;",
         "varying vec2 v_bufferResolution;",
         "vec2 convert2D(vec2 inp, vec2 res){",
         "    return vec2(0.0, 0.0);",
-        "",
         "}",        
-        "void main(){",
-        "    if((gl_FragCoord.x >= v_clickPosition.x - 5.0) && (gl_FragCoord.y >= v_clickPosition.y - 5.0) && (gl_FragCoord.x <= (v_clickPosition.x + 5.0)) && ( gl_FragCoord.y <= (v_clickPosition.y + 5.0) )){",
-        "        gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);",
-        "    }else{",
-        "        discard;",
-        "    }",
+        "void main(){",// write the mouse clicked point as an impulse into buffer0
+        "    vec2 onePixel = vec2(1.0, 1.0)/v_bufferResolution;",
+        "    if((gl_FragCoord.x - v_clickPosition.x ) == -0.5 && (gl_FragCoord.y - v_clickPosition.y ) > -0.5){",
+        "        gl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);",
+        "    }else if( (gl_FragCoord.x - v_clickPosition.x ) == 0.5 && (gl_FragCoord.y - v_clickPosition.y ) == -0.5 ){",
+        "        gl_FragColor = vec4(1.0, 0.0, 0.0, 0.0);",
+        "    }else{ ",
+                "discard; }", //""
         "}"
     ].join("\n");
 
+    var buffer2VertexShaderSRC = [
+        "attribute vec2 a_vertex2;",
+        "attribute vec2 a_texCoord2;",
+        "varying vec2 v_texCoord2;",
+        "void main(void){",
+        "    gl_Position = vec4(a_vertex2, 0.0, 1.0);",
+        "    v_texCoord2 = a_texCoord2;",
+        "}"
+    ].join("\n");
+
+    var buffer2FragmentShaderSRC = [
+        "precision highp float;",        
+        "uniform sampler2D u_texture0;",
+        "uniform sampler2D u_texture1;",
+        "uniform vec2 u_buffer2Resolution;",
+        "varying vec2 v_texCoord2;",
+        "void main(void){",
+        "    vec2 onePixel = vec2(1.0, 1.0)/u_buffer2Resolution;",
+        "    float oldWaveHeight = texture2D(u_texture1, v_texCoord2).r;",
+        "    float newMinusOne = texture2D(u_texture0,v_texCoord2 + vec2(-onePixel.x,0)).r;",
+        "    float newPlusOne= texture2D(u_texture0,v_texCoord2 + vec2(onePixel.x,0)).r;",
+        "    float newMinusCol= texture2D(u_texture0, v_texCoord2 + vec2(0,-onePixel.y)).r;",
+        "    float newPlusCol= texture2D(u_texture0, v_texCoord2 + vec2(0, onePixel.y)).r;",
+        "    ",
+        "    float xColor = (newMinusOne + newPlusOne + newMinusCol + newPlusCol )/2.0 - oldWaveHeight;",
+        //"    gl_FragColor = vec4(xColor, 0.0, 0.0, 0.0);",
+        "    gl_FragColor = vec4( texture2D(u_texture0, v_texCoord2).r, 0.0, 0.0, 0.0);",
+        "",
+        "}"
+    ].join("\n");
+    
     var vertexShaderSRC = [
         "attribute vec2 a_vertex;",
         "attribute vec2 a_texCoord;",
-//        "uniform vec2 u_resolution;",
         "varying vec2 v_texCoord;",
         "void main(void){",
-//        "    vec2 position = vec2(a_vertex.x, a_vertex.y)/u_resolution;",
-//        "    vec2 clipSpace = position * 2.0 - 1.0;",
-        //        "    gl_Position = vec4(clipSpace * vec2(1,-1), 0.0, 1.0);",
-        "    gl_Position = vec4(a_vertex, 0.0, 1.0);",
+        "    gl_Position = vec4(a_vertex*vec2(1,1), 0.0, 1.0);",
         "    v_texCoord = a_texCoord;",
         "}"
     ].join("\n");
 
     var fragmentShaderSRC = [
-        "precision mediump float;",
-        "uniform sampler2D u_texture0;",
+        "precision highp float;",
+        "uniform sampler2D u_texture2;",
+        "uniform sampler2D u_textureOriginal;",
+        "uniform vec2 u_resolution;",
         "varying vec2 v_texCoord;",
         "void main(void){",
-        "    gl_FragColor = texture2D(u_texture0, v_texCoord);",
+        "    vec2 onePixel = vec2(1.0, 1.0)/u_resolution;",
+        "    float waveMinusTwo = texture2D(u_texture2, v_texCoord + vec2(-2.0*onePixel.x, 0)).r;",
+        "    float waveMinusCol= texture2D(u_texture2,v_texCoord + vec2(0,-onePixel.y)).r;",
+        "    float waveHeight = texture2D(u_texture2, v_texCoord ).r;",
+        "",
+        "    float offsetX = (waveMinusTwo - waveHeight)*0.08;",
+        "    float offsetY = (waveMinusCol - waveHeight)*0.08;",
+        "",
+        "    offsetX = (offsetX<0.0)?0.0:(offsetX>u_resolution.x?u_resolution.x:offsetX);",
+        "    offsetY = (offsetY<0.0)?0.0:(offsetY>u_resolution.y?u_resolution.y:offsetY);",
+        "    float light = waveHeight*2.0 - waveMinusTwo*0.6;",
+        "    light = (light < -10.0)?(-10.0):(light>100.0?100.0:light);",
+        "    light = light/255.0;",
+        "    ",
+        "    float sample = texture2D(u_texture2, v_texCoord).r;",
+        "    if(sample > 0.0){",
+        // "        gl_FragColor =texture2D(u_textureOriginal,v_texCoord +vec2(offsetX,offsetY))",
+        // "                   + vec4(1.0, 1.0, 1.0, 0.0 );",
+        "        gl_FragColor = texture2D(u_textureOriginal, v_texCoord) + vec4(0.0,0.0,0.6,0.0);",
+        "    }else{",
+        "        gl_FragColor = texture2D(u_textureOriginal, v_texCoord) + vec4(0.0,0.0,0.0,0.0);",
+        "    }",
+        //"    gl_FragColor = texture2D(u_textureOriginal, v_texCoord) + texture2D(u_texture2, v_texCoord);",
         "}"
     ].join("\n");
 
-    var clickPosition = {x:0, y:0};
+    var clickPosition = {x:-5, y:-5};
     
     function clickCallback(e){
         console.log('mouse clicked:'+ e.clientX +':'+ e.clientY);
@@ -333,26 +386,34 @@ function multiThingWebGLLoop(opt){
         touchstartCallback
     );
 
-    var bufferProgram = webGLUtil.initShader(gl,bufferVertexShaderSRC, bufferFragmentShaderSRC);
-
-    var program = webGLUtil.initShader(gl,vertexShaderSRC,fragmentShaderSRC);
+    var bufferProgram = webGLUtil.initShader(gl, bufferVertexShaderSRC, bufferFragmentShaderSRC);
+    //var buffer1Program = webGLUtil.initShader(gl, buffer1VertexShaderSRC, buffer1FragmentShaderSRC);
+    var buffer2Program = webGLUtil.initShader(gl, buffer2VertexShaderSRC, buffer2FragmentShaderSRC);
+    var program = webGLUtil.initShader(gl, vertexShaderSRC, fragmentShaderSRC);
 
     // framebuffers and textures
     var frameBuffers = [];
-    var textures = [],  textureIndex = 0;
-    for(var i =0 ; i<2; i++){
+    var textures = [],  textureIndex0 = 0, textureIndex1 = 1, textureIndex2 = 2;
+    for(var i =0 ; i < 3; i++){
         textures[i] = createAndSetupTexture(gl);
-        // make the texture the same size as the image
+        // make the texture the same size as the image, RGBA used
         gl.texImage2D(
             gl.TEXTURE_2D, 0, gl.RGBA, WIDTH, HEIGHT, 0,
-            gl.RGBA, gl.UNSIGNED_BYTE, null);
+            gl.RGBA, gl.FLOAT, null);
+
+        // gl.texImage2D(
+        //     gl.TEXTURE_2D, 0, gl.RGBA, WIDTH, HEIGHT, 0,
+        //     gl.RGBA, gl.UNSIGNED_BYTE, null);        
         
         frameBuffers[i] = gl.createFramebuffer();
         gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffers[i]);
         gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0,
                                 gl.TEXTURE_2D, textures[i], 0);
     }
-
+    
+    var originalTexture = createAndSetupTexture(gl);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, w.getImage('beautiful'));
+    
     var particles = new Float32Array(WIDTH * HEIGHT * 2);
     for(var j = 0; j < WIDTH*HEIGHT; j++){
         particles[j*2] = j % WIDTH;
@@ -411,16 +472,27 @@ function multiThingWebGLLoop(opt){
     }
     //gl.useProgram( bufferProgram);
     //gl.viewport(0,0, WIDTH, HEIGHT);
-    function switchBuffer(){
-
+    function decreaseIndex(n){
+        var temp = n - 1;
+        if( temp < 0){
+            return 2;
+        }else{
+            return temp;
+        }
+    }
+    function switchTextureBuffer(){
+        textureIndex0 = decreaseIndex(textureIndex0);
+        textureIndex1 = decreaseIndex(textureIndex1);
+        textureIndex2 = decreaseIndex(textureIndex2);
     }
     
     function draw(gl, bMark){
         // write to buffer0
+        //gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+        //gl.enable(gl.BLEND);
+        
         gl.useProgram(bufferProgram);
-        setFramebuffer( frameBuffers[textureIndex], WIDTH, HEIGHT);
-        gl.clearColor(0,0,0,1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
+        setFramebuffer( frameBuffers[textureIndex0], WIDTH, HEIGHT);
 
         var particlesLoc = gl.getAttribLocation(bufferProgram, 'a_bufferVertex');
         gl.bindBuffer(gl.ARRAY_BUFFER, particlesBuffer);
@@ -432,13 +504,45 @@ function multiThingWebGLLoop(opt){
 
         var clickPositionLoc = gl.getUniformLocation(bufferProgram, 'u_clickPosition');
         gl.uniform2f( clickPositionLoc, clickPosition.x, clickPosition.y);
-        
+
         gl.drawArrays(gl.POINTS, 0, WIDTH*HEIGHT);
+        //=====================================================================
+        // write to buffer2 from buffer0 and buffer1
+        gl.useProgram(buffer2Program);
+        setFramebuffer( frameBuffers[textureIndex2], WIDTH, HEIGHT);
+        var vertsBuffer2Loc = gl.getAttribLocation(buffer2Program, 'a_vertex2');
+        gl.bindBuffer(gl.ARRAY_BUFFER, vertsBuffer);
+        gl.vertexAttribPointer(vertsBuffer2Loc, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray( vertsBuffer2Loc );
 
+        var texCoordsBuffer2Loc = gl.getAttribLocation(buffer2Program, 'a_texCoord2');
+        gl.bindBuffer(gl.ARRAY_BUFFER, texCoordsBuffer);
+        gl.vertexAttribPointer(texCoordsBuffer2Loc, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray( texCoordsBuffer2Loc);
 
-        // write to normal display buffer
+        var uTexture0Buffer2Loc = gl.getUniformLocation(buffer2Program, 'u_texture0');
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture( gl.TEXTURE_2D, textures[textureIndex0]  );
+        gl.uniform1i( uTexture0Buffer2Loc, 0 );
+
+        var uTexture1Buffer2Loc = gl.getUniformLocation(buffer2Program, 'u_texture1');
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture( gl.TEXTURE_2D, textures[textureIndex1]  );
+        gl.uniform1i( uTexture1Buffer2Loc, 1 );        
+
+        var uBuffer2ResolutionLoc = gl.getUniformLocation( buffer2Program, 'u_buffer2Resolution');
+        gl.uniform2f( uBuffer2ResolutionLoc, WIDTH, HEIGHT);        
+
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        //=======================================================================
+        
+        //=======================================================================
+        // write to normal display from buffer2
         gl.useProgram(program);
         setFramebuffer( null, WIDTH, HEIGHT);
+        gl.clearColor(0,0,0,1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        
         var vertsLoc = gl.getAttribLocation(program, 'a_vertex');
         gl.bindBuffer(gl.ARRAY_BUFFER, vertsBuffer);
         gl.vertexAttribPointer( vertsLoc, 2, gl.FLOAT, false, 0, 0 );
@@ -449,14 +553,86 @@ function multiThingWebGLLoop(opt){
         gl.vertexAttribPointer( texCoordsLoc, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(texCoordsLoc);
 
-        var uTexture0Loc = gl.getUniformLocation(program, 'u_texture0');
+        var uTexture0Loc = gl.getUniformLocation(program, 'u_texture2');
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, textures[textureIndex]);
+        gl.bindTexture(gl.TEXTURE_2D, textures[textureIndex2]);
         gl.uniform1i( uTexture0Loc, 0);
+
+        var uTextureOriginalLoc = gl.getUniformLocation(program, 'u_textureOriginal');
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, originalTexture);
+        gl.uniform1i( uTextureOriginalLoc, 1);
+
+        var uResolutionLoc = gl.getUniformLocation( program, 'u_resolution');
+        gl.uniform2f( uResolutionLoc, WIDTH, HEIGHT);        
         
         gl.drawArrays( gl.TRIANGLES, 0, 6);
+        //==============================================================
+        //
+        clickPosition.x = -5;
+        clickPosition.y = -5;
+        switchTextureBuffer();// switch buffer0 and buffer1
     }
     
+    return{
+        loop:function(td){
+            draw(gl,false);
+        },
+        houseKeeping:function(){
+            console.log('housekeeping of:'+ name);
+            w.getInterface().clear();
+        }
+    };
+}
+
+function multiThingWebGLLoop3(opt){
+    var gl = opt.contextGL;
+    var name = "multiThingWebGLLoop";
+    console.log("into multiThing Loop");
+
+    var WIDTH = w.getCanvas().width, HEIGHT = w.getCanvas().height;
+    var SIZE = WIDTH*HEIGHT;
+
+    var buffer0 = new Float32Array(SIZE);
+    var buffer1 = new Float32Array(SIZE);
+
+    function disturb(x,y,z){
+        if( x< 2 || x > (WIDTH -2) || y < 1 || y >(HEIGHT -2)){
+            return;
+        }
+        var i = x + y* WIDTH;
+        buffer0[i] += z;
+        buffer0[i -1] -= z;
+    }
+    function average_waveheight(){
+        var i , x;
+        for(i = WIDTH + 1; i < SIZE - WIDTH -1; i+=2){
+            for( x = 1; x < WIDTH -1; x++, i++){
+                buffer0[i] =
+                    (buffer0[i] + buffer0[i+1] + buffer0[i-1] + buffer0[i-WIDTH] +buffer0[i+WIDTH])/5.0;
+            }
+        }
+    }
+    function compute_waveheight(){
+        var i , x, waveHeight;
+        for(i = WIDTH + 1; i < SIZE - WIDTH -1; i+=2){
+            for( x = 1; x < WIDTH -1; x++, i++){
+                waveHeight = (buffer0[i+1] + buffer0[i-1] + buffer0[i-WIDTH] +buffer0[i+WIDTH])/2 - buffer1[i];
+                buffer1[i] = waveHeight;
+            }
+        }
+    }
+    function switch_buffer(){
+        var temp = buffer0;
+        buffer0 = buffer1;
+        buffer1 = temp;
+    }
+    function draw(gl, bMark){
+        average_waveheight();
+        compute_waveheight();
+        switch_buffer();
+    }
+
     return{
         loop:function(td){
             draw(gl,false);
